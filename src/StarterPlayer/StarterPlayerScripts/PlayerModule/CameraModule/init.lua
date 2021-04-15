@@ -29,6 +29,20 @@ local FFlagUserRemoveTheCameraApi do
 	FFlagUserRemoveTheCameraApi = success and result
 end
 
+local FFlagUserCameraInputRefactor do
+	local success, result = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserCameraInputRefactor3")
+	end)
+	FFlagUserCameraInputRefactor = success and result
+end
+
+local FFlagUserCarCam do
+	local success, result = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserCarCam")
+	end)
+	FFlagUserCarCam = success and result
+end
+
 -- NOTICE: Player property names do not all match their StarterPlayer equivalents,
 -- with the differences noted in the comments on the right
 local PLAYER_CAMERA_PROPERTIES =
@@ -64,13 +78,15 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
--- Camera math utility library
+-- Static camera utils
 local CameraUtils = require(script:WaitForChild("CameraUtils"))
+local CameraInput = require(script:WaitForChild("CameraInput"))
 
 -- Load Roblox Camera Controller Modules
 local ClassicCamera = require(script:WaitForChild("ClassicCamera"))
 local OrbitalCamera = require(script:WaitForChild("OrbitalCamera"))
 local LegacyCamera = require(script:WaitForChild("LegacyCamera"))
+local VehicleCamera = require(script:WaitForChild("VehicleCamera"))
 
 -- Load Roblox Occlusion Modules
 local Invisicam = require(script:WaitForChild("Invisicam"))
@@ -204,6 +220,10 @@ function CameraModule:ActivateOcclusionModule( occlusionMode )
 		return
 	end
 
+	if FFlagUserCarCam then
+		self.occlusionMode = occlusionMode
+	end
+
 	-- First check to see if there is actually a change. If the module being requested is already
 	-- the currently-active solution then just make sure it's enabled and exit early
 	if self.activeOcclusionModule and self.activeOcclusionModule:GetOcclusionMode() == occlusionMode then
@@ -270,6 +290,24 @@ function CameraModule:ActivateOcclusionModule( occlusionMode )
 	end
 end
 
+function CameraModule:ShouldUseVehicleCamera()
+	assert(FFlagUserCarCam)
+	
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return false
+	end
+	
+	local cameraType = camera.CameraType
+	local cameraSubject = camera.CameraSubject
+	
+	local isEligibleType = cameraType == Enum.CameraType.Custom or cameraType == Enum.CameraType.Follow
+	local isEligibleSubject = cameraSubject and cameraSubject:IsA("VehicleSeat") or false
+	local isEligibleOcclusionMode = self.occlusionMode ~= Enum.DevCameraOcclusionMode.Invisicam
+
+	return isEligibleSubject and isEligibleType and isEligibleOcclusionMode
+end
+
 -- When supplied, legacyCameraType is used and cameraMovementMode is ignored (should be nil anyways)
 -- Next, if userCameraCreator is passed in, that is used as the cameraCreator
 function CameraModule:ActivateCameraController(cameraMovementMode, legacyCameraType)
@@ -326,6 +364,11 @@ function CameraModule:ActivateCameraController(cameraMovementMode, legacyCameraT
 		end
 	end
 
+	local isVehicleCamera = FFlagUserCarCam and self:ShouldUseVehicleCamera()
+	if isVehicleCamera then
+		newCameraCreator = VehicleCamera
+	end
+
 	-- Create the camera control module we need if it does not already exist in instantiatedCameraControllers
 	local newCameraController
 	if not instantiatedCameraControllers[newCameraCreator] then
@@ -333,11 +376,13 @@ function CameraModule:ActivateCameraController(cameraMovementMode, legacyCameraT
 		instantiatedCameraControllers[newCameraCreator] = newCameraController
 	else
 		newCameraController = instantiatedCameraControllers[newCameraCreator]
+		if FFlagUserCarCam and newCameraController.Reset then
+			newCameraController:Reset()
+		end
 	end
-
-	-- If there is a controller active and it's not the one we need, disable it,
-	-- if it is the one we need, make sure it's enabled
+	
 	if self.activeCameraController then
+		-- deactivate the old controller and activate the new one
 		if self.activeCameraController ~= newCameraController then
 			self.activeCameraController:Enable(false)
 			self.activeCameraController = newCameraController
@@ -346,6 +391,7 @@ function CameraModule:ActivateCameraController(cameraMovementMode, legacyCameraT
 			self.activeCameraController:Enable(true)
 		end
 	elseif newCameraController ~= nil then
+		-- only activate the new controller
 		self.activeCameraController = newCameraController
 		self.activeCameraController:Enable(true)
 	end
@@ -363,12 +409,19 @@ end
 
 -- Note: The active transparency controller could be made to listen for this event itself.
 function CameraModule:OnCameraSubjectChanged()
+	local camera = workspace.CurrentCamera
+	local cameraSubject = camera and camera.CameraSubject
+
 	if self.activeTransparencyController then
-		self.activeTransparencyController:SetSubject(game.Workspace.CurrentCamera.CameraSubject)
+		self.activeTransparencyController:SetSubject(cameraSubject)
 	end
 
 	if self.activeOcclusionModule then
-		self.activeOcclusionModule:OnCameraSubjectChanged(game.Workspace.CurrentCamera.CameraSubject)
+		self.activeOcclusionModule:OnCameraSubjectChanged(cameraSubject)
+	end
+
+	if FFlagUserCarCam then
+		self:ActivateCameraController(nil, camera.CameraType)
 	end
 end
 
@@ -423,7 +476,7 @@ function CameraModule:OnLocalPlayerCameraPropertyChanged(propertyName)
 			end
 		elseif Players.LocalPlayer.CameraMode == Enum.CameraMode.Classic then
 			-- Not locked in first person view
-			local cameraMovementMode =self: GetCameraMovementModeFromSettings()
+			local cameraMovementMode = self:GetCameraMovementModeFromSettings()
 			self:ActivateCameraController(CameraUtils.ConvertCameraModeEnumToStandard(cameraMovementMode))
 		else
 			warn("Unhandled value for property player.CameraMode: ",Players.LocalPlayer.CameraMode)
@@ -453,7 +506,7 @@ function CameraModule:OnLocalPlayerCameraPropertyChanged(propertyName)
 end
 
 function CameraModule:OnUserGameSettingsPropertyChanged(propertyName)
-	if propertyName == 	"ComputerCameraMovementMode" then
+	if propertyName == "ComputerCameraMovementMode" then
 		local cameraMovementMode = self:GetCameraMovementModeFromSettings()
 		self:ActivateCameraController(CameraUtils.ConvertCameraModeEnumToStandard(cameraMovementMode))
 	end
@@ -484,6 +537,10 @@ function CameraModule:Update(dt)
 		-- Update to character local transparency as needed based on camera-to-subject distance
 		if self.activeTransparencyController then
 			self.activeTransparencyController:Update()
+		end
+
+		if FFlagUserCameraInputRefactor and CameraInput.getInputEnabled() then
+			CameraInput.resetInputForFrameEnd()
 		end
 	end
 end
