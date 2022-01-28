@@ -15,7 +15,7 @@ local ChatConstants = require(clientChatModules:WaitForChild("ChatConstants"))
 local util = require(script.Parent:WaitForChild("Util"))
 
 local ChatLocalization = nil
-pcall(function() ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization) end)
+pcall(function() ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization :: any) end)
 
 function CreateMessageLabel(messageData, channelName)
 
@@ -65,7 +65,8 @@ function CreateMessageLabel(messageData, channelName)
 		if messageData.IsFiltered then
 			BaseMessage.Text = string.rep(" ", numNeededSpaces) .. messageObject.Message
 		else
-			BaseMessage.Text = string.rep(" ", numNeededSpaces) .. string.rep("_", messageObject.MessageLength)
+			local messageLength = messageObject.MessageLengthUtf8 or messageObject.MessageLength
+			BaseMessage.Text = string.rep(" ", numNeededSpaces) .. string.rep("_", messageLength)
 		end
 	end
 

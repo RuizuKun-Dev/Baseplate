@@ -19,11 +19,19 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
+local VRService = game:GetService("VRService")
 
 -- Roblox User Input Control Modules - each returns a new() constructor function used to create controllers as needed
 local Keyboard = require(script:WaitForChild("Keyboard"))
 local Gamepad = require(script:WaitForChild("Gamepad"))
 local DynamicThumbstick = require(script:WaitForChild("DynamicThumbstick"))
+
+local FFlagUserFlagEnableNewVRSystem do
+	local success, result = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserFlagEnableNewVRSystem")
+	end)
+	FFlagUserFlagEnableNewVRSystem = success and result
+end
 
 local FFlagUserMakeThumbstickDynamic do
 	local success, value = pcall(function()
@@ -33,13 +41,6 @@ local FFlagUserMakeThumbstickDynamic do
 end
 
 local TouchThumbstick = FFlagUserMakeThumbstickDynamic and DynamicThumbstick or require(script:WaitForChild("TouchThumbstick"))
-
-local FFlagUserFixExternalJumpRequest do
-	local success, result = pcall(function()
-		return UserSettings():IsUserFeatureEnabled("UserFixExternalJumpRequest")
-	end)
-	FFlagUserFixExternalJumpRequest = success and result
-end
 
 -- These controllers handle only walk/run movement, jumping is handled by the
 -- TouchJump controller if any of these are active
@@ -146,6 +147,10 @@ function ControlModule.new()
 	self.touchGui = nil
 	self.playerGuiAddedConn = nil
 
+	UserInputService:GetPropertyChangedSignal("ModalEnabled"):Connect(function()
+		self:UpdateTouchGuiVisibility()
+	end)
+
 	if UserInputService.TouchEnabled then
 		self.playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
 		if self.playerGui then
@@ -170,9 +175,9 @@ function ControlModule.new()
 end
 
 -- Convenience function so that calling code does not have to first get the activeController
--- and then call GetMoveVector on it. When there is no active controller, this function returns
--- nil so that this case can be distinguished from no current movement (which returns zero vector).
-function ControlModule:GetMoveVector()
+-- and then call GetMoveVector on it. When there is no active controller, this function returns the 
+-- zero vector
+function ControlModule:GetMoveVector(): Vector3
 	if self.activeController then
 		return self.activeController:GetMoveVector()
 	end
@@ -199,7 +204,7 @@ function ControlModule:EnableActiveControlModule()
 	end
 end
 
-function ControlModule:Enable(enable)
+function ControlModule:Enable(enable: boolean?)
 	if not self.activeController then
 		return
 	end
@@ -227,7 +232,7 @@ end
 
 
 -- Returns module (possibly nil) and success code to differentiate returning nil due to error vs Scriptable
-function ControlModule:SelectComputerMovementModule()
+function ControlModule:SelectComputerMovementModule(): ({}?, boolean)
 	if not (UserInputService.KeyboardEnabled or UserInputService.GamepadEnabled) then
 		return nil, false
 	end
@@ -265,7 +270,7 @@ end
 
 -- Choose current Touch control module based on settings (user, dev)
 -- Returns module (possibly nil) and success code to differentiate returning nil due to error vs Scriptable
-function ControlModule:SelectTouchModule()
+function ControlModule:SelectTouchModule(): ({}?, boolean)
 	if not UserInputService.TouchEnabled then
 		return nil, false
 	end
@@ -281,7 +286,7 @@ function ControlModule:SelectTouchModule()
 	return touchModule, true
 end
 
-local function calculateRawMoveVector(humanoid, cameraRelativeMoveVector)
+local function calculateRawMoveVector(humanoid: Humanoid, cameraRelativeMoveVector: Vector3): Vector3
 	local camera = Workspace.CurrentCamera
 	if not camera then
 		return cameraRelativeMoveVector
@@ -290,9 +295,20 @@ local function calculateRawMoveVector(humanoid, cameraRelativeMoveVector)
 	if humanoid:GetState() == Enum.HumanoidStateType.Swimming then
 		return camera.CFrame:VectorToWorldSpace(cameraRelativeMoveVector)
 	end
+	
+	local cameraCFrame = camera.CFrame
+	
+	if VRService.VREnabled and FFlagUserFlagEnableNewVRSystem and humanoid.RootPart then
+		-- movement relative to VR frustum
+		local cameraDelta = humanoid.RootPart.CFrame.Position - cameraCFrame.Position
+		if cameraDelta.Magnitude < 3 then -- "nearly" first person
+			local vrFrame = VRService:GetUserCFrame(Enum.UserCFrame.Head)
+			cameraCFrame = cameraCFrame * vrFrame
+		end
+	end
 
 	local c, s
-	local _, _, _, R00, R01, R02, _, _, R12, _, _, R22 = camera.CFrame:GetComponents()
+	local _, _, _, R00, R01, R02, _, _, R12, _, _, R22 = cameraCFrame:GetComponents()
 	if R12 < 1 and R12 > -1 then
 		-- X and Z components from back vector.
 		c = R22
@@ -350,17 +366,11 @@ function ControlModule:OnRenderStepped(dt)
 		--end
 
 		-- And make them jump if needed
-		if FFlagUserFixExternalJumpRequest then
-			if self.activeController:GetIsJumping() or (self.touchJumpController and self.touchJumpController:GetIsJumping()) then
-				self.humanoid.Jump = true
-			end
-		else
-			self.humanoid.Jump = self.activeController:GetIsJumping() or (self.touchJumpController and self.touchJumpController:GetIsJumping())
-		end
+		self.humanoid.Jump = self.activeController:GetIsJumping() or (self.touchJumpController and self.touchJumpController:GetIsJumping())
 	end
 end
 
-function ControlModule:OnHumanoidSeated(active, currentSeatPart)
+function ControlModule:OnHumanoidSeated(active: boolean, currentSeatPart: BasePart)
 	if active then
 		if currentSeatPart and currentSeatPart:IsA("VehicleSeat") then
 			if not self.vehicleController then
@@ -382,9 +392,7 @@ function ControlModule:OnCharacterAdded(char)
 		self.humanoid = char:FindFirstChildOfClass("Humanoid")
 	end
 
-	if self.touchGui then
-		self.touchGui.Enabled = true
-	end
+	self:UpdateTouchGuiVisibility()
 
 	if self.humanoidSeatedConn then
 		self.humanoidSeatedConn:Disconnect()
@@ -398,8 +406,13 @@ end
 function ControlModule:OnCharacterRemoving(char)
 	self.humanoid = nil
 
+	self:UpdateTouchGuiVisibility()
+end
+
+function ControlModule:UpdateTouchGuiVisibility()
 	if self.touchGui then
-		self.touchGui.Enabled = false
+		local doShow = self.humanoid and not UserInputService.ModalEnabled
+		self.touchGui.Enabled = not not doShow -- convert to bool
 	end
 end
 
@@ -466,6 +479,8 @@ function ControlModule:OnLastInputTypeChanged(newLastInputType)
 			self:SwitchToController(computerModule)
 		end
 	end
+
+	self:UpdateTouchGuiVisibility()
 end
 
 -- Called when any relevant values of GameSettings or LocalPlayer change, forcing re-evalulation of
@@ -495,7 +510,7 @@ function ControlModule:CreateTouchGuiContainer()
 	self.touchGui.Name = "TouchGui"
 	self.touchGui.ResetOnSpawn = false
 	self.touchGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	self.touchGui.Enabled = self.humanoid ~= nil
+	self:UpdateTouchGuiVisibility()
 
 	self.touchControlFrame = Instance.new("Frame")
 	self.touchControlFrame.Name = "TouchControlFrame"

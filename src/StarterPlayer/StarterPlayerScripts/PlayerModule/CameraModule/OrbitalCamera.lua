@@ -3,22 +3,11 @@
 	2018 Camera Update - AllYourBlox
 --]]
 
-local FFlagUserCameraInputRefactor do
-	local success, result = pcall(function()
-		return UserSettings():IsUserFeatureEnabled("UserCameraInputRefactor3")
-	end)
-	FFlagUserCameraInputRefactor = success and result
-end
-
 -- Local private variables and constants
 local UNIT_Z = Vector3.new(0,0,1)
 local X1_Y0_Z1 = Vector3.new(1,0,1)	--Note: not a unit vector, used for projecting onto XZ plane
 local ZERO_VECTOR3 = Vector3.new(0,0,0)
-local ZERO_VECTOR2 = Vector2.new(0,0)
 local TAU = 2 * math.pi
-
---[[ Gamepad Support ]]--
-local THUMBSTICK_DEADZONE = 0.2
 
 -- Do not edit these values, they are not the developer-set limits, they are limits
 -- to the values the camera system equations can correctly handle
@@ -69,9 +58,6 @@ function OrbitalCamera.new()
 	self.minDistance = nil
 	self.maxDistance = nil
 
-	-- Gamepad
-	self.r3ButtonDown = false
-	self.l3ButtonDown = false
 	self.gamepadDollySpeedMultiplier = 1
 
 	self.lastUserPanCamera = tick()
@@ -92,7 +78,7 @@ function OrbitalCamera.new()
 	return self
 end
 
-function OrbitalCamera:LoadOrCreateNumberValueParameter(name, valueType, updateFunction)
+function OrbitalCamera:LoadOrCreateNumberValueParameter(name: string, valueType, updateFunction)
 	local valueObj = script:FindFirstChild(name)
 
 	if valueObj and valueObj:isA(valueType) then
@@ -182,7 +168,7 @@ function OrbitalCamera:GetModuleName()
 	return "OrbitalCamera"
 end
 
-function OrbitalCamera:SetInitialOrientation(humanoid)
+function OrbitalCamera:SetInitialOrientation(humanoid: Humanoid)
 	if not humanoid or not humanoid.RootPart then
 		warn("OrbitalCamera could not set initial orientation due to missing humanoid")
 		return
@@ -196,7 +182,6 @@ function OrbitalCamera:SetInitialOrientation(humanoid)
 	if not Util.IsFinite(vertShift) then
 		vertShift = 0
 	end
-	self.rotateInput = Vector2.new(horizontalShift, vertShift)
 end
 
 --[[ Functions of BaseCamera that are overridden by OrbitalCamera ]]--
@@ -217,91 +202,21 @@ function OrbitalCamera:SetCameraToSubjectDistance(desiredSubjectDistance)
 	return self.currentSubjectDistance
 end
 
-function OrbitalCamera:CalculateNewLookVector(suppliedLookVector, xyRotateVector)
-	local currLookVector = suppliedLookVector or self:GetCameraLookVector()
-	local currPitchAngle = math.asin(currLookVector.y)
-	local yTheta = math.clamp(xyRotateVector.y, currPitchAngle - math.rad(MAX_ALLOWED_ELEVATION_DEG), currPitchAngle - math.rad(MIN_ALLOWED_ELEVATION_DEG))
-	local constrainedRotateInput = Vector2.new(xyRotateVector.x, yTheta)
-	local startCFrame = CFrame.new(ZERO_VECTOR3, currLookVector)
-	local newLookVector = (CFrame.Angles(0, -constrainedRotateInput.x, 0) * startCFrame * CFrame.Angles(-constrainedRotateInput.y,0,0)).lookVector
+function OrbitalCamera:CalculateNewLookVector(suppliedLookVector: Vector3, xyRotateVector: Vector2): Vector3
+	local currLookVector: Vector3 = suppliedLookVector or self:GetCameraLookVector()
+	local currPitchAngle: number = math.asin(currLookVector.y)
+	local yTheta: number = math.clamp(xyRotateVector.y, currPitchAngle - math.rad(MAX_ALLOWED_ELEVATION_DEG), currPitchAngle - math.rad(MIN_ALLOWED_ELEVATION_DEG))
+	local constrainedRotateInput: Vector2 = Vector2.new(xyRotateVector.x, yTheta)
+	local startCFrame: CFrame = CFrame.new(ZERO_VECTOR3, currLookVector)
+	local newLookVector: Vector3 = (CFrame.Angles(0, -constrainedRotateInput.x, 0) * startCFrame * CFrame.Angles(-constrainedRotateInput.y,0,0)).lookVector
 	return newLookVector
 end
 
--- Remove on FFlagUserCameraInputRefactor
-function OrbitalCamera:GetGamepadPan(name, state, input)
-	assert(not FFlagUserCameraInputRefactor)
-
-	if input.UserInputType == self.activeGamepad and input.KeyCode == Enum.KeyCode.Thumbstick2 then
-		if self.r3ButtonDown or self.l3ButtonDown then
-		-- R3 or L3 Thumbstick is depressed, right stick controls dolly in/out
-			if (input.Position.Y > THUMBSTICK_DEADZONE) then
-				self.gamepadDollySpeedMultiplier = 0.96
-			elseif (input.Position.Y < -THUMBSTICK_DEADZONE) then
-				self.gamepadDollySpeedMultiplier = 1.04
-			else
-				self.gamepadDollySpeedMultiplier = 1.00
-			end
-		else
-			if state == Enum.UserInputState.Cancel then
-				self.gamepadPanningCamera = ZERO_VECTOR2
-				return
-			end
-
-			local inputVector = Vector2.new(input.Position.X, -input.Position.Y)
-			if inputVector.magnitude > THUMBSTICK_DEADZONE then
-				self.gamepadPanningCamera = Vector2.new(input.Position.X, -input.Position.Y)
-			else
-				self.gamepadPanningCamera = ZERO_VECTOR2
-			end
-		end
-		return Enum.ContextActionResult.Sink
-	end
-	return Enum.ContextActionResult.Pass
-end
-
--- Remove on FFlagUserCameraInputRefactor
-function OrbitalCamera:DoGamepadZoom(name, state, input)
-	assert(not FFlagUserCameraInputRefactor)
-
-	if input.UserInputType == self.activeGamepad and (input.KeyCode == Enum.KeyCode.ButtonR3 or input.KeyCode == Enum.KeyCode.ButtonL3) then
-		if (state == Enum.UserInputState.Begin) then
-			self.r3ButtonDown = input.KeyCode == Enum.KeyCode.ButtonR3
-			self.l3ButtonDown = input.KeyCode == Enum.KeyCode.ButtonL3
-		elseif (state == Enum.UserInputState.End) then
-			if (input.KeyCode == Enum.KeyCode.ButtonR3) then
-				self.r3ButtonDown = false
-			elseif (input.KeyCode == Enum.KeyCode.ButtonL3) then
-				self.l3ButtonDown = false
-			end
-			if (not self.r3ButtonDown) and (not self.l3ButtonDown) then
-				self.gamepadDollySpeedMultiplier = 1.00
-			end
-		end
-		return Enum.ContextActionResult.Sink
-	end
-	return Enum.ContextActionResult.Pass
-end
-
--- Remove on FFlagUserCameraInputRefactor
-function OrbitalCamera:BindGamepadInputActions()
-	assert(not FFlagUserCameraInputRefactor)
-
-	self:BindAction("OrbitalCamGamepadPan", function(name, state, input) return self:GetGamepadPan(name, state, input) end,
-		false, Enum.KeyCode.Thumbstick2)
-	self:BindAction("OrbitalCamGamepadZoom", function(name, state, input) return self:DoGamepadZoom(name, state, input) end,
-		false, Enum.KeyCode.ButtonR3, Enum.KeyCode.ButtonL3)
-end
-
 -- [[ Update ]]--
-function OrbitalCamera:Update(dt)
+function OrbitalCamera:Update(dt: number): (CFrame, CFrame)
 	local now = tick()
 	local timeDelta = (now - self.lastUpdate)
-	local userPanningTheCamera
-	if FFlagUserCameraInputRefactor then
-		userPanningTheCamera = CameraInput.getRotation() ~= Vector2.new()
-	else
-		userPanningTheCamera = self.userPanningTheCamera == true
-	end
+	local userPanningTheCamera = CameraInput.getRotation() ~= Vector2.new()
 	local camera = 	workspace.CurrentCamera
 	local newCameraCFrame = camera.CFrame
 	local newCameraFocus = camera.Focus
@@ -312,33 +227,6 @@ function OrbitalCamera:Update(dt)
 
 	if self.lastUpdate == nil or timeDelta > 1 then
 		self.lastCameraTransform = nil
-	end
-
-	if self.lastUpdate and not FFlagUserCameraInputRefactor then
-		local gamepadRotation = self:UpdateGamepad()
-
-		if self:ShouldUseVRRotation() then
-			self.rotateInput = self.rotateInput + self:GetVRRotationInput()
-		else
-			-- Cap out the delta to 0.1 so we don't get some crazy things when we re-resume from
-			local delta = math.min(0.1, timeDelta)
-
-			if gamepadRotation ~= ZERO_VECTOR2 then
-				userPanningTheCamera = true
-				self.rotateInput = self.rotateInput + (gamepadRotation * delta)
-			end
-
-			local angle = 0
-			if not (isInVehicle or isOnASkateboard) then
-				angle = angle + (self.TurningLeft and -120 or 0)
-				angle = angle + (self.TurningRight and 120 or 0)
-			end
-
-			if angle ~= 0 then
-				self.rotateInput = self.rotateInput +  Vector2.new(math.rad(angle * delta), 0)
-				userPanningTheCamera = true
-			end
-		end
 	end
 
 	-- Reset tween speed if user is panning
@@ -359,18 +247,13 @@ function OrbitalCamera:Update(dt)
 		local VREnabled = VRService.VREnabled
 		newCameraFocus = VREnabled and self:GetVRFocus(subjectPosition, timeDelta) or CFrame.new(subjectPosition)
 
-		local flaggedRotateInput
-		if FFlagUserCameraInputRefactor then
-			flaggedRotateInput = CameraInput.getRotation()
-		else
-			flaggedRotateInput = self.rotateInput
-		end
+		local flaggedRotateInput = CameraInput.getRotation()
 
 		local cameraFocusP = newCameraFocus.p
 		if VREnabled and not self:IsInFirstPerson() then
 			local cameraHeight = self:GetCameraHeight()
-			local vecToSubject = (subjectPosition - camera.CFrame.p)
-			local distToSubject = vecToSubject.magnitude
+			local vecToSubject: Vector3 = (subjectPosition - camera.CFrame.p)
+			local distToSubject: number = vecToSubject.magnitude
 
 			-- Only move the camera if it exceeded a maximum distance to the subject in VR
 			if distToSubject > self.currentSubjectDistance or flaggedRotateInput.x ~= 0 then
@@ -385,14 +268,10 @@ function OrbitalCamera:Update(dt)
 					desiredLookDir = vecToSubject
 				end
 				local lookAt = Vector3.new(newPos.x + desiredLookDir.x, newPos.y, newPos.z + desiredLookDir.z)
-				if not FFlagUserCameraInputRefactor then
-					self.rotateInput = ZERO_VECTOR2
-				end
-
 				newCameraCFrame = CFrame.new(newPos, lookAt) + Vector3.new(0, cameraHeight, 0)
 			end
 		else
-			-- self.rotateInput is a Vector2 of mouse movement deltas since last update
+			-- rotateInput is a Vector2 of mouse movement deltas since last update
 			self.curAzimuthRad = self.curAzimuthRad - flaggedRotateInput.x
 
 			if self.useAzimuthLimits then
@@ -407,10 +286,6 @@ function OrbitalCamera:Update(dt)
 			local camPos = subjectPosition + cameraPosVector
 
 			newCameraCFrame = CFrame.new(camPos, subjectPosition)
-			
-			if not FFlagUserCameraInputRefactor then
-				self.rotateInput = ZERO_VECTOR2
-			end
 		end
 
 		self.lastCameraTransform = newCameraCFrame
