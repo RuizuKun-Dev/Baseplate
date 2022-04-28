@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local SOUND_DATA = {

@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(incorrect_standard_library_use)
+
 local module = {}
 local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 local Chat = game:GetService("Chat")

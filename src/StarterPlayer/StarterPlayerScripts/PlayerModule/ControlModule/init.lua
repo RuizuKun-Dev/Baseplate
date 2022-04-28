@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ControlModule = {}
 
 ControlModule.__index = ControlModule

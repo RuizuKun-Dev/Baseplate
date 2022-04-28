@@ -1,3 +1,10 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+-- # selene: allow(incorrect_standard_library_use)
+-- # selene: allow(undefined_variable)
+-- # selene: allow(divide_by_zero)
+-- # selene: allow(unscoped_variables)
+
 local VRService = game:GetService("VRService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")

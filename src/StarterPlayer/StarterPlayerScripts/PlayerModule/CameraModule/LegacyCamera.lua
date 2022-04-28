@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ZERO_VECTOR2 = Vector2.new()
 local PITCH_LIMIT = math.rad(80)
 local Util = require(script.Parent:WaitForChild("CameraUtils"))

@@ -1,3 +1,5 @@
+-- # selene: allow(incorrect_standard_library_use)
+
 local ROOT_ALIAS = "root"
 
 local function parsePath(pathStr)

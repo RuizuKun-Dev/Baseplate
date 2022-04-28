@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ContextActionService = game:GetService("ContextActionService")
 local useTriggersForThrottle = true
 local onlyTriggersForThrottle = false

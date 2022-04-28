@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+
 local MAX_FILTER_RETRIES = 3
 local FILTER_BACKOFF_INTERVALS = { 5E-2, 0.1, 0.2 }
 local MAX_FILTER_DURATION = 60

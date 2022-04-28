@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+
 local OBJECT_POOL_SIZE = 50
 local module = {}
 local Chat = game:GetService("Chat")

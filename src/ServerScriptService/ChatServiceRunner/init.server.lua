@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local EventFolderName = "DefaultChatSystemChatEvents"
 local EventFolderParent = game:GetService("ReplicatedStorage")
 local modulesFolder = script

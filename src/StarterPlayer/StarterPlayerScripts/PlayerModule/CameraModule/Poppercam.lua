@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ZoomController = require(script.Parent:WaitForChild("ZoomController"))
 local TransformExtrapolator = {}
 

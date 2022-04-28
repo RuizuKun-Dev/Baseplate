@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+
 local userShouldMuteUnfilteredMessage = false
 
 do

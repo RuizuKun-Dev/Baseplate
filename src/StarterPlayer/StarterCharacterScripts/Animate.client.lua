@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(incorrect_standard_library_use)
+
 local Character = script.Parent
 local Humanoid = Character:WaitForChild("Humanoid")
 local pose = "Standing"

@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local FFlagUserExcludeNonCollidableForPathfindingSuccess, FFlagUserExcludeNonCollidableForPathfindingResult = pcall(
 	function()
 		return UserSettings():IsUserFeatureEnabled("UserExcludeNonCollidableForPathfinding")

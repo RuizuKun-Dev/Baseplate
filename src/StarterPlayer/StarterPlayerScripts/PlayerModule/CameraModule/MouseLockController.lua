@@ -1,10 +1,6 @@
---[[
-	MouseLockController - Replacement for ShiftLockController, manages use of mouse-locked mode
-	2018 Camera Update - AllYourBlox
---]]
+-- # selene: allow(unused_variable)
 
---[[ Constants ]]
---
+
 local DEFAULT_MOUSE_LOCK_CURSOR = "rbxasset://textures/MouseLockedCursor.png"
 
 local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
@@ -18,21 +14,19 @@ do
 	FFlagUserCameraToggleDontSetMouseIconEveryFrame = success and value
 end
 
---[[ Services ]]
---
+
 local PlayersService = game:GetService("Players")
 local ContextActionService = game:GetService("ContextActionService")
 local Settings = UserSettings() -- ignore warning
 local GameSettings = Settings.GameSettings
 local Mouse = if FFlagUserCameraToggleDontSetMouseIconEveryFrame then nil else PlayersService.LocalPlayer:GetMouse()
 
---[[ Imports ]]
+
 local CameraUtils = if FFlagUserCameraToggleDontSetMouseIconEveryFrame
 	then require(script.Parent:WaitForChild("CameraUtils"))
 	else nil
 
---[[ The Module ]]
---
+
 local MouseLockController = {}
 MouseLockController.__index = MouseLockController
 
@@ -41,13 +35,13 @@ function MouseLockController.new()
 
 	self.isMouseLocked = false
 	self.savedMouseCursor = nil
-	self.boundKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift } -- defaults
+	self.boundKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift }
 
 	self.mouseLockToggledEvent = Instance.new("BindableEvent")
 
 	local boundKeysObj: StringValue = script:FindFirstChild("BoundKeys") :: StringValue
 	if not boundKeysObj or (not boundKeysObj:IsA("StringValue")) then
-		-- If object with correct name was found, but it's not a StringValue, destroy and replace
+
 		if boundKeysObj then
 			boundKeysObj:Destroy()
 		end
@@ -62,22 +56,22 @@ function MouseLockController.new()
 		boundKeysObj.Changed:Connect(function(value)
 			self:OnBoundKeysObjectChanged(value)
 		end)
-		self:OnBoundKeysObjectChanged(boundKeysObj.Value) -- Initial setup call
+		self:OnBoundKeysObjectChanged(boundKeysObj.Value)
 	end
 
-	-- Watch for changes to user's ControlMode and ComputerMovementMode settings and update the feature availability accordingly
+	
 	GameSettings.Changed:Connect(function(property)
 		if property == "ControlMode" or property == "ComputerMovementMode" then
 			self:UpdateMouseLockAvailability()
 		end
 	end)
 
-	-- Watch for changes to DevEnableMouseLock and update the feature availability accordingly
+	
 	PlayersService.LocalPlayer:GetPropertyChangedSignal("DevEnableMouseLock"):Connect(function()
 		self:UpdateMouseLockAvailability()
 	end)
 
-	-- Watch for changes to DevEnableMouseLock and update the feature availability accordingly
+	
 	PlayersService.LocalPlayer:GetPropertyChangedSignal("DevComputerMovementMode"):Connect(function()
 		self:UpdateMouseLockAvailability()
 	end)
@@ -100,13 +94,13 @@ function MouseLockController:GetMouseLockOffset()
 	if offsetValueObj and offsetValueObj:IsA("Vector3Value") then
 		return offsetValueObj.Value
 	else
-		-- If CameraOffset object was found but not correct type, destroy
+		
 		if offsetValueObj then
 			offsetValueObj:Destroy()
 		end
 		offsetValueObj = Instance.new("Vector3Value")
 		offsetValueObj.Name = "CameraOffset"
-		offsetValueObj.Value = Vector3.new(1.75, 0, 0) -- Legacy Default Value
+		offsetValueObj.Value = Vector3.new(1.75, 0, 0)
 		offsetValueObj.Parent = script
 	end
 
@@ -134,7 +128,7 @@ function MouseLockController:UpdateMouseLockAvailability()
 end
 
 function MouseLockController:OnBoundKeysObjectChanged(newValue: string)
-	self.boundKeys = {} -- Overriding defaults, note: possibly with nothing at all if boundKeysObj.Value is "" or contains invalid values
+	self.boundKeys = {}
 	for token in string.gmatch(newValue, "[^%s,]+") do
 		for _, keyEnum in pairs(Enum.KeyCode:GetEnumItems()) do
 			if token == keyEnum.Name then
@@ -147,8 +141,7 @@ function MouseLockController:OnBoundKeysObjectChanged(newValue: string)
 	self:BindContextActions()
 end
 
---[[ Local Functions ]]
---
+
 function MouseLockController:OnMouseLockToggled()
 	self.isMouseLocked = not self.isMouseLocked
 
@@ -217,11 +210,10 @@ function MouseLockController:EnableMouseLock(enable: boolean)
 		self.enabled = enable
 
 		if self.enabled then
-			-- Enabling the mode
+			
 			self:BindContextActions()
 		else
-			-- Disabling
-			-- Restore mouse cursor
+
 			if FFlagUserCameraToggleDontSetMouseIconEveryFrame then
 				CameraUtils.restoreMouseIcon()
 			else
@@ -232,7 +224,7 @@ function MouseLockController:EnableMouseLock(enable: boolean)
 
 			self:UnbindContextActions()
 
-			-- If the mode is disabled while being used, fire the event to toggle it off
+			
 			if self.isMouseLocked then
 				self.mouseLockToggledEvent:Fire()
 			end

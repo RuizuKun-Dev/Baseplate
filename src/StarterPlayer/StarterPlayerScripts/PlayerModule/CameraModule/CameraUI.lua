@@ -1,3 +1,5 @@
+-- # selene: allow(incorrect_standard_library_use)
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer

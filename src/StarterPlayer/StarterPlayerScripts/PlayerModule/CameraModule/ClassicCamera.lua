@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ZERO_VECTOR2 = Vector2.new(0, 0)
 local tweenAcceleration = math.rad(220)
 local tweenSpeed = math.rad(0)

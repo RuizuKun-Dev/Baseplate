@@ -1,3 +1,5 @@
+-- # selene: allow(incorrect_standard_library_use)
+
 local Players = game:GetService("Players")
 local camera = game.Workspace.CurrentCamera
 local min = math.min

@@ -1,3 +1,6 @@
+-- # selene: allow(incorrect_standard_library_use)
+-- # selene: allow(unused_variable)
+
 local Chat = game:GetService("Chat")
 local ReplicatedModules = Chat:WaitForChild("ClientChatModules")
 local ChatConstants = require(ReplicatedModules:WaitForChild("ChatConstants"))

@@ -1,3 +1,6 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+
 local VR_ANGLE = math.rad(15)
 local VR_PANEL_SIZE = 512
 local VR_ZOOM = 7

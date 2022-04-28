@@ -1,3 +1,7 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+-- # selene: allow(incorrect_standard_library_use)
+
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")

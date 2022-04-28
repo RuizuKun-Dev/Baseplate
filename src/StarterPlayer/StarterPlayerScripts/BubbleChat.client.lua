@@ -1,3 +1,7 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+-- # selene: allow(incorrect_standard_library_use)
+
 local PlayersService = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChatService = game:GetService("Chat")

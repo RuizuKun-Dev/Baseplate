@@ -1,3 +1,5 @@
+-- # selene: allow(incorrect_standard_library_use)
+
 local CameraUtils = require(script.Parent.Parent.CameraUtils)
 local VehicleCameraConfig = require(script.Parent.VehicleCameraConfig)
 local map = CameraUtils.map

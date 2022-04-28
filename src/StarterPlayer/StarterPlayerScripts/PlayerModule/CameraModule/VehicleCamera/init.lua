@@ -1,3 +1,6 @@
+-- # selene: allow(incorrect_standard_library_use)
+-- # selene: allow(unused_variable)
+
 local EPSILON = 1e-3
 local PITCH_LIMIT = math.rad(80)
 local YAW_DEFAULT = math.rad(0)

@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local ZERO_VECTOR3 = Vector3.new(0, 0, 0)

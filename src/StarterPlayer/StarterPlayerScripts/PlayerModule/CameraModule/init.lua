@@ -1,3 +1,5 @@
+-- # selene: allow(empty_if)
+
 local CameraModule = {}
 
 CameraModule.__index = CameraModule

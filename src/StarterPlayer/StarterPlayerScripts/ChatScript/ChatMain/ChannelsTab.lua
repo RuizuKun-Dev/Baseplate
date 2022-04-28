@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local module = {}
 local Chat = game:GetService("Chat")
 local clientChatModules = Chat:WaitForChild("ClientChatModules")

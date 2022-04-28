@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local ZERO_VECTOR3 = Vector3.new(0, 0, 0)
 local TOUCH_CONTROLS_SHEET = "rbxasset://textures/ui/Input/TouchControlsSheetV2.png"
 local DYNAMIC_THUMBSTICK_ACTION_NAME = "DynamicThumbstickAction"

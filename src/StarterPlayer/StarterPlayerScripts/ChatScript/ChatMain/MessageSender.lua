@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local module = {}
 local modulesFolder = script.Parent
 local methods = {}

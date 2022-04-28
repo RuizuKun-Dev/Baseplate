@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local module = {}
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")

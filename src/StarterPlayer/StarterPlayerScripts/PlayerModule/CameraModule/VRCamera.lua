@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local PlayersService = game:GetService("Players")
 local VRService = game:GetService("VRService")
 local CAMERA_BLACKOUT_TIME = 0.1

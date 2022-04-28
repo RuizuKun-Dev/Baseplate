@@ -1,3 +1,5 @@
+-- # selene: allow(unused_variable)
+
 local BaseOcclusion = {}
 
 BaseOcclusion.__index = BaseOcclusion

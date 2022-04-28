@@ -1,3 +1,7 @@
+-- # selene: allow(unused_variable)
+-- # selene: allow(shadowing)
+-- # selene: allow(incorrect_standard_library_use)
+
 local PlayersService = game:GetService("Players")
 local ZERO_VECTOR3 = Vector3.new(0, 0, 0)
 local USE_STACKING_TRANSPARENCY = true
