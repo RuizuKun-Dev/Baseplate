@@ -2,17 +2,21 @@ local Character = script.Parent
 local Humanoid = Character:WaitForChild("Humanoid")
 local pose = "Standing"
 
-local userNoUpdateOnLoopSuccess, userNoUpdateOnLoopValue = pcall(function() return UserSettings():IsUserFeatureEnabled("UserNoUpdateOnLoop") end)
+local userNoUpdateOnLoopSuccess, userNoUpdateOnLoopValue = pcall(function()
+	return UserSettings():IsUserFeatureEnabled("UserNoUpdateOnLoop")
+end)
 local userNoUpdateOnLoop = userNoUpdateOnLoopSuccess and userNoUpdateOnLoopValue
 
-local userEmoteToRunThresholdChange do
+local userEmoteToRunThresholdChange
+do
 	local success, value = pcall(function()
 		return UserSettings():IsUserFeatureEnabled("UserEmoteToRunThresholdChange")
 	end)
 	userEmoteToRunThresholdChange = success and value
 end
 
-local userPlayEmoteByIdAnimTrackReturn do
+local userPlayEmoteByIdAnimTrackReturn
+do
 	local success, value = pcall(function()
 		return UserSettings():IsUserFeatureEnabled("UserPlayEmoteByIdAnimTrackReturn2")
 	end)
@@ -36,76 +40,84 @@ local runAnimKeyframeHandler = nil
 local PreloadedAnims = {}
 
 local animTable = {}
-local animNames = { 
-	idle = 	{	
-				{ id = "http://www.roblox.com/asset/?id=507766666", weight = 1 },
-				{ id = "http://www.roblox.com/asset/?id=507766951", weight = 1 },
-				{ id = "http://www.roblox.com/asset/?id=507766388", weight = 9 }
-			},
-	walk = 	{ 	
-				{ id = "http://www.roblox.com/asset/?id=507777826", weight = 10 } 
-			}, 
-	run = 	{
-				{ id = "http://www.roblox.com/asset/?id=507767714", weight = 10 } 
-			}, 
-	swim = 	{
-				{ id = "http://www.roblox.com/asset/?id=507784897", weight = 10 } 
-			}, 
-	swimidle = 	{
-				{ id = "http://www.roblox.com/asset/?id=507785072", weight = 10 } 
-			}, 
-	jump = 	{
-				{ id = "http://www.roblox.com/asset/?id=507765000", weight = 10 } 
-			}, 
-	fall = 	{
-				{ id = "http://www.roblox.com/asset/?id=507767968", weight = 10 } 
-			}, 
+local animNames = {
+	idle = {
+		{ id = "http://www.roblox.com/asset/?id=507766666", weight = 1 },
+		{ id = "http://www.roblox.com/asset/?id=507766951", weight = 1 },
+		{ id = "http://www.roblox.com/asset/?id=507766388", weight = 9 },
+	},
+	walk = {
+		{ id = "http://www.roblox.com/asset/?id=507777826", weight = 10 },
+	},
+	run = {
+		{ id = "http://www.roblox.com/asset/?id=507767714", weight = 10 },
+	},
+	swim = {
+		{ id = "http://www.roblox.com/asset/?id=507784897", weight = 10 },
+	},
+	swimidle = {
+		{ id = "http://www.roblox.com/asset/?id=507785072", weight = 10 },
+	},
+	jump = {
+		{ id = "http://www.roblox.com/asset/?id=507765000", weight = 10 },
+	},
+	fall = {
+		{ id = "http://www.roblox.com/asset/?id=507767968", weight = 10 },
+	},
 	climb = {
-				{ id = "http://www.roblox.com/asset/?id=507765644", weight = 10 } 
-			}, 
-	sit = 	{
-				{ id = "http://www.roblox.com/asset/?id=2506281703", weight = 10 } 
-			},	
+		{ id = "http://www.roblox.com/asset/?id=507765644", weight = 10 },
+	},
+	sit = {
+		{ id = "http://www.roblox.com/asset/?id=2506281703", weight = 10 },
+	},
 	toolnone = {
-				{ id = "http://www.roblox.com/asset/?id=507768375", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507768375", weight = 10 },
+	},
 	toolslash = {
-				{ id = "http://www.roblox.com/asset/?id=522635514", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=522635514", weight = 10 },
+	},
 	toollunge = {
-				{ id = "http://www.roblox.com/asset/?id=522638767", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=522638767", weight = 10 },
+	},
 	wave = {
-				{ id = "http://www.roblox.com/asset/?id=507770239", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507770239", weight = 10 },
+	},
 	point = {
-				{ id = "http://www.roblox.com/asset/?id=507770453", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507770453", weight = 10 },
+	},
 	dance = {
-				{ id = "http://www.roblox.com/asset/?id=507771019", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507771955", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507772104", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507771019", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507771955", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507772104", weight = 10 },
+	},
 	dance2 = {
-				{ id = "http://www.roblox.com/asset/?id=507776043", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507776720", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507776879", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507776043", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507776720", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507776879", weight = 10 },
+	},
 	dance3 = {
-				{ id = "http://www.roblox.com/asset/?id=507777268", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507777451", weight = 10 }, 
-				{ id = "http://www.roblox.com/asset/?id=507777623", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507777268", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507777451", weight = 10 },
+		{ id = "http://www.roblox.com/asset/?id=507777623", weight = 10 },
+	},
 	laugh = {
-				{ id = "http://www.roblox.com/asset/?id=507770818", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507770818", weight = 10 },
+	},
 	cheer = {
-				{ id = "http://www.roblox.com/asset/?id=507770677", weight = 10 } 
-			},
+		{ id = "http://www.roblox.com/asset/?id=507770677", weight = 10 },
+	},
 }
 
 -- Existance in this list signifies that it is an emote, the value indicates if it is a looping emote
-local emoteNames = { wave = false, point = false, dance = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
+local emoteNames = {
+	wave = false,
+	point = false,
+	dance = true,
+	dance2 = true,
+	dance3 = true,
+	laugh = false,
+	cheer = false,
+}
 
 math.randomseed(tick())
 
@@ -113,46 +125,58 @@ function findExistingAnimationInSet(set, anim)
 	if set == nil or anim == nil then
 		return 0
 	end
-	
-	for idx = 1, set.count, 1 do 
+
+	for idx = 1, set.count, 1 do
 		if set[idx].anim.AnimationId == anim.AnimationId then
 			return idx
 		end
 	end
-	
+
 	return 0
 end
 
 function configureAnimationSet(name, fileList)
-	if (animTable[name] ~= nil) then
+	if animTable[name] ~= nil then
 		for _, connection in pairs(animTable[name].connections) do
 			connection:disconnect()
 		end
 	end
 	animTable[name] = {}
 	animTable[name].count = 0
-	animTable[name].totalWeight = 0	
+	animTable[name].totalWeight = 0
 	animTable[name].connections = {}
 
 	local allowCustomAnimations = true
 
-	local success, msg = pcall(function() allowCustomAnimations = game:GetService("StarterPlayer").AllowCustomAnimations end)
+	local success, msg = pcall(function()
+		allowCustomAnimations = game:GetService("StarterPlayer").AllowCustomAnimations
+	end)
 	if not success then
 		allowCustomAnimations = true
 	end
 
 	-- check for config values
 	local config = script:FindFirstChild(name)
-	if (allowCustomAnimations and config ~= nil) then
-		table.insert(animTable[name].connections, config.ChildAdded:connect(function(child) configureAnimationSet(name, fileList) end))
-		table.insert(animTable[name].connections, config.ChildRemoved:connect(function(child) configureAnimationSet(name, fileList) end))
-		
+	if allowCustomAnimations and config ~= nil then
+		table.insert(
+			animTable[name].connections,
+			config.ChildAdded:connect(function(child)
+				configureAnimationSet(name, fileList)
+			end)
+		)
+		table.insert(
+			animTable[name].connections,
+			config.ChildRemoved:connect(function(child)
+				configureAnimationSet(name, fileList)
+			end)
+		)
+
 		local idx = 0
 		for _, childPart in pairs(config:GetChildren()) do
-			if (childPart:IsA("Animation")) then
+			if childPart:IsA("Animation") then
 				local newWeight = 1
 				local weightObject = childPart:FindFirstChild("Weight")
-				if (weightObject ~= nil) then
+				if weightObject ~= nil then
 					newWeight = weightObject.Value
 				end
 				animTable[name].count = animTable[name].count + 1
@@ -161,15 +185,30 @@ function configureAnimationSet(name, fileList)
 				animTable[name][idx].anim = childPart
 				animTable[name][idx].weight = newWeight
 				animTable[name].totalWeight = animTable[name].totalWeight + animTable[name][idx].weight
-				table.insert(animTable[name].connections, childPart.Changed:connect(function(property) configureAnimationSet(name, fileList) end))
-				table.insert(animTable[name].connections, childPart.ChildAdded:connect(function(property) configureAnimationSet(name, fileList) end))
-				table.insert(animTable[name].connections, childPart.ChildRemoved:connect(function(property) configureAnimationSet(name, fileList) end))
+				table.insert(
+					animTable[name].connections,
+					childPart.Changed:connect(function(property)
+						configureAnimationSet(name, fileList)
+					end)
+				)
+				table.insert(
+					animTable[name].connections,
+					childPart.ChildAdded:connect(function(property)
+						configureAnimationSet(name, fileList)
+					end)
+				)
+				table.insert(
+					animTable[name].connections,
+					childPart.ChildRemoved:connect(function(property)
+						configureAnimationSet(name, fileList)
+					end)
+				)
 			end
 		end
 	end
-	
+
 	-- fallback to defaults
-	if (animTable[name].count <= 0) then
+	if animTable[name].count <= 0 then
 		for idx, anim in pairs(fileList) do
 			animTable[name][idx] = {}
 			animTable[name][idx].anim = Instance.new("Animation")
@@ -180,14 +219,14 @@ function configureAnimationSet(name, fileList)
 			animTable[name].totalWeight = animTable[name].totalWeight + anim.weight
 		end
 	end
-	
+
 	-- preload anims
 	for i, animType in pairs(animTable) do
 		for idx = 1, animType.count, 1 do
 			if PreloadedAnims[animType[idx].anim.AnimationId] == nil then
 				Humanoid:LoadAnimation(animType[idx].anim)
 				PreloadedAnims[animType[idx].anim.AnimationId] = true
-			end				
+			end
 		end
 	end
 end
@@ -195,36 +234,53 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 function configureAnimationSetOld(name, fileList)
-	if (animTable[name] ~= nil) then
+	if animTable[name] ~= nil then
 		for _, connection in pairs(animTable[name].connections) do
 			connection:disconnect()
 		end
 	end
 	animTable[name] = {}
 	animTable[name].count = 0
-	animTable[name].totalWeight = 0	
+	animTable[name].totalWeight = 0
 	animTable[name].connections = {}
 
 	local allowCustomAnimations = true
 
-	local success, msg = pcall(function() allowCustomAnimations = game:GetService("StarterPlayer").AllowCustomAnimations end)
+	local success, msg = pcall(function()
+		allowCustomAnimations = game:GetService("StarterPlayer").AllowCustomAnimations
+	end)
 	if not success then
 		allowCustomAnimations = true
 	end
 
 	-- check for config values
 	local config = script:FindFirstChild(name)
-	if (allowCustomAnimations and config ~= nil) then
-		table.insert(animTable[name].connections, config.ChildAdded:connect(function(child) configureAnimationSet(name, fileList) end))
-		table.insert(animTable[name].connections, config.ChildRemoved:connect(function(child) configureAnimationSet(name, fileList) end))
+	if allowCustomAnimations and config ~= nil then
+		table.insert(
+			animTable[name].connections,
+			config.ChildAdded:connect(function(child)
+				configureAnimationSet(name, fileList)
+			end)
+		)
+		table.insert(
+			animTable[name].connections,
+			config.ChildRemoved:connect(function(child)
+				configureAnimationSet(name, fileList)
+			end)
+		)
 		local idx = 1
 		for _, childPart in pairs(config:GetChildren()) do
-			if (childPart:IsA("Animation")) then
-				table.insert(animTable[name].connections, childPart.Changed:connect(function(property) configureAnimationSet(name, fileList) end))
+			if childPart:IsA("Animation") then
+				table.insert(
+					animTable[name].connections,
+					childPart.Changed:connect(function(property)
+						configureAnimationSet(name, fileList)
+					end)
+				)
 				animTable[name][idx] = {}
 				animTable[name][idx].anim = childPart
 				local weightObject = childPart:FindFirstChild("Weight")
-				if (weightObject == nil) then
+				if weightObject == nil then
 					animTable[name][idx].weight = 1
 				else
 					animTable[name][idx].weight = weightObject.Value
@@ -237,7 +293,7 @@ function configureAnimationSetOld(name, fileList)
 	end
 
 	-- fallback to defaults
-	if (animTable[name].count <= 0) then
+	if animTable[name].count <= 0 then
 		for idx, anim in pairs(fileList) do
 			animTable[name][idx] = {}
 			animTable[name][idx].anim = Instance.new("Animation")
@@ -249,10 +305,10 @@ function configureAnimationSetOld(name, fileList)
 			-- print(name .. " [" .. idx .. "] " .. anim.id .. " (" .. anim.weight .. ")")
 		end
 	end
-	
+
 	-- preload anims
 	for i, animType in pairs(animTable) do
-		for idx = 1, animType.count, 1 do 
+		for idx = 1, animType.count, 1 do
 			Humanoid:LoadAnimation(animType[idx].anim)
 		end
 	end
@@ -261,9 +317,9 @@ end
 -- Setup animation objects
 function scriptChildModified(child)
 	local fileList = animNames[child.Name]
-	if (fileList ~= nil) then
+	if fileList ~= nil then
 		configureAnimationSet(child.Name, fileList)
-	end	
+	end
 end
 
 script.ChildAdded:connect(scriptChildModified)
@@ -274,15 +330,15 @@ script.ChildRemoved:connect(scriptChildModified)
 local animator = if Humanoid then Humanoid:FindFirstChildOfClass("Animator") else nil
 if animator then
 	local animTracks = animator:GetPlayingAnimationTracks()
-	for i,track in ipairs(animTracks) do
+	for i, track in ipairs(animTracks) do
 		track:Stop(0)
 		track:Destroy()
 	end
 end
 
-for name, fileList in pairs(animNames) do 
+for name, fileList in pairs(animNames) do
 	configureAnimationSet(name, fileList)
-end	
+end
 
 -- ANIMATION
 
@@ -304,10 +360,10 @@ function stopAllAnimations()
 	local oldAnim = currentAnim
 
 	-- return to idle if finishing an emote
-	if (emoteNames[oldAnim] ~= nil and emoteNames[oldAnim] == false) then
+	if emoteNames[oldAnim] ~= nil and emoteNames[oldAnim] == false then
 		oldAnim = "idle"
 	end
-	
+
 	if currentlyPlayingEmote then
 		oldAnim = "idle"
 		currentlyPlayingEmote = false
@@ -315,27 +371,27 @@ function stopAllAnimations()
 
 	currentAnim = ""
 	currentAnimInstance = nil
-	if (currentAnimKeyframeHandler ~= nil) then
+	if currentAnimKeyframeHandler ~= nil then
 		currentAnimKeyframeHandler:disconnect()
 	end
 
-	if (currentAnimTrack ~= nil) then
+	if currentAnimTrack ~= nil then
 		currentAnimTrack:Stop()
 		currentAnimTrack:Destroy()
 		currentAnimTrack = nil
 	end
 
 	-- clean up walk if there is one
-	if (runAnimKeyframeHandler ~= nil) then
+	if runAnimKeyframeHandler ~= nil then
 		runAnimKeyframeHandler:disconnect()
 	end
-	
-	if (runAnimTrack ~= nil) then
+
+	if runAnimTrack ~= nil then
 		runAnimTrack:Stop()
 		runAnimTrack:Destroy()
 		runAnimTrack = nil
 	end
-	
+
 	return oldAnim
 end
 
@@ -344,16 +400,17 @@ function getHeightScale()
 		if not Humanoid.AutomaticScalingEnabled then
 			return 1
 		end
-		
+
 		local scale = Humanoid.HipHeight / HumanoidHipHeight
 		if AnimationSpeedDampeningObject == nil then
 			AnimationSpeedDampeningObject = script:FindFirstChild("ScaleDampeningPercent")
 		end
 		if AnimationSpeedDampeningObject ~= nil then
-			scale = 1 + (Humanoid.HipHeight - HumanoidHipHeight) * AnimationSpeedDampeningObject.Value / HumanoidHipHeight
+			scale = 1
+				+ (Humanoid.HipHeight - HumanoidHipHeight) * AnimationSpeedDampeningObject.Value / HumanoidHipHeight
 		end
 		return scale
-	end	
+	end
 	return 1
 end
 
@@ -367,20 +424,20 @@ end
 local smallButNotZero = 0.0001
 local function setRunSpeed(speed)
 	local normalizedWalkSpeed = 0.5 -- established empirically using current `913402848` walk animation
-	local normalizedRunSpeed  = 1
+	local normalizedRunSpeed = 1
 	local runSpeed = rootMotionCompensation(speed)
 
 	local walkAnimationWeight = smallButNotZero
 	local runAnimationWeight = smallButNotZero
-	local walkAnimationTimewarp = runSpeed/normalizedWalkSpeed
-	local runAnimationTimerwarp = runSpeed/normalizedRunSpeed
+	local walkAnimationTimewarp = runSpeed / normalizedWalkSpeed
+	local runAnimationTimerwarp = runSpeed / normalizedRunSpeed
 
 	if runSpeed <= normalizedWalkSpeed then
 		walkAnimationWeight = 1
 	elseif runSpeed < normalizedRunSpeed then
-		local fadeInRun = (runSpeed - normalizedWalkSpeed)/(normalizedRunSpeed - normalizedWalkSpeed)
+		local fadeInRun = (runSpeed - normalizedWalkSpeed) / (normalizedRunSpeed - normalizedWalkSpeed)
 		walkAnimationWeight = 1 - fadeInRun
-		runAnimationWeight  = fadeInRun
+		runAnimationWeight = fadeInRun
 		walkAnimationTimewarp = 1
 		runAnimationTimerwarp = 1
 	else
@@ -394,7 +451,7 @@ end
 
 function setAnimationSpeed(speed)
 	if currentAnim == "walk" then
-			setRunSpeed(speed)
+		setRunSpeed(speed)
 	else
 		if speed ~= currentAnimSpeed then
 			currentAnimSpeed = speed
@@ -404,7 +461,7 @@ function setAnimationSpeed(speed)
 end
 
 function keyFrameReachedFunc(frameName)
-	if (frameName == "End") then
+	if frameName == "End" then
 		if currentAnim == "walk" then
 			if userNoUpdateOnLoop == true then
 				if runAnimTrack.Looped ~= true then
@@ -420,20 +477,20 @@ function keyFrameReachedFunc(frameName)
 		else
 			local repeatAnim = currentAnim
 			-- return to idle if finishing an emote
-			if (emoteNames[repeatAnim] ~= nil and emoteNames[repeatAnim] == false) then
+			if emoteNames[repeatAnim] ~= nil and emoteNames[repeatAnim] == false then
 				repeatAnim = "idle"
 			end
-			
+
 			if currentlyPlayingEmote then
 				if currentAnimTrack.Looped then
 					-- Allow the emote to loop
 					return
 				end
-				
+
 				repeatAnim = "idle"
 				currentlyPlayingEmote = false
 			end
-			
+
 			local animSpeed = currentAnimSpeed
 			playAnimation(repeatAnim, 0.15, Humanoid)
 			setAnimationSpeed(animSpeed)
@@ -442,10 +499,10 @@ function keyFrameReachedFunc(frameName)
 end
 
 function rollAnimation(animName)
-	local roll = math.random(1, animTable[animName].totalWeight) 
+	local roll = math.random(1, animTable[animName].totalWeight)
 	local origRoll = roll
 	local idx = 1
-	while (roll > animTable[animName][idx].weight) do
+	while roll > animTable[animName][idx].weight do
 		roll = roll - animTable[animName][idx].weight
 		idx = idx + 1
 	end
@@ -453,15 +510,14 @@ function rollAnimation(animName)
 end
 
 local function switchToAnim(anim, animName, transitionTime, humanoid)
-	-- switch animation		
-	if (anim ~= currentAnimInstance) then
-		
-		if (currentAnimTrack ~= nil) then
+	-- switch animation
+	if anim ~= currentAnimInstance then
+		if currentAnimTrack ~= nil then
 			currentAnimTrack:Stop(transitionTime)
 			currentAnimTrack:Destroy()
 		end
 
-		if (runAnimTrack ~= nil) then
+		if runAnimTrack ~= nil then
 			runAnimTrack:Stop(transitionTime)
 			runAnimTrack:Destroy()
 			if userNoUpdateOnLoop == true then
@@ -470,22 +526,22 @@ local function switchToAnim(anim, animName, transitionTime, humanoid)
 		end
 
 		currentAnimSpeed = 1.0
-	
+
 		-- load it to the humanoid; get AnimationTrack
 		currentAnimTrack = humanoid:LoadAnimation(anim)
 		currentAnimTrack.Priority = Enum.AnimationPriority.Core
-		 
+
 		-- play the animation
 		currentAnimTrack:Play(transitionTime)
 		currentAnim = animName
 		currentAnimInstance = anim
 
 		-- set up keyframe name triggers
-		if (currentAnimKeyframeHandler ~= nil) then
+		if currentAnimKeyframeHandler ~= nil then
 			currentAnimKeyframeHandler:disconnect()
 		end
 		currentAnimKeyframeHandler = currentAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
-		
+
 		-- check to see if we need to blend a walk/run animation
 		if animName == "walk" then
 			local runAnimName = "run"
@@ -493,17 +549,17 @@ local function switchToAnim(anim, animName, transitionTime, humanoid)
 
 			runAnimTrack = humanoid:LoadAnimation(animTable[runAnimName][runIdx].anim)
 			runAnimTrack.Priority = Enum.AnimationPriority.Core
-			runAnimTrack:Play(transitionTime)		
-			
-			if (runAnimKeyframeHandler ~= nil) then
+			runAnimTrack:Play(transitionTime)
+
+			if runAnimKeyframeHandler ~= nil then
 				runAnimKeyframeHandler:disconnect()
 			end
-			runAnimKeyframeHandler = runAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)	
+			runAnimKeyframeHandler = runAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
 		end
 	end
 end
 
-function playAnimation(animName, transitionTime, humanoid) 	
+function playAnimation(animName, transitionTime, humanoid)
 	local idx = rollAnimation(animName)
 	local anim = animTable[animName][idx].anim
 
@@ -525,49 +581,47 @@ local toolAnimInstance = nil
 local currentToolAnimKeyframeHandler = nil
 
 function toolKeyFrameReachedFunc(frameName)
-	if (frameName == "End") then
+	if frameName == "End" then
 		playToolAnimation(toolAnimName, 0.0, Humanoid)
 	end
 end
 
+function playToolAnimation(animName, transitionTime, humanoid, priority)
+	local idx = rollAnimation(animName)
+	local anim = animTable[animName][idx].anim
 
-function playToolAnimation(animName, transitionTime, humanoid, priority)	 		
-		local idx = rollAnimation(animName)
-		local anim = animTable[animName][idx].anim
-
-		if (toolAnimInstance ~= anim) then
-			
-			if (toolAnimTrack ~= nil) then
-				toolAnimTrack:Stop()
-				toolAnimTrack:Destroy()
-				transitionTime = 0
-			end
-					
-			-- load it to the humanoid; get AnimationTrack
-			toolAnimTrack = humanoid:LoadAnimation(anim)
-			if priority then
-				toolAnimTrack.Priority = priority
-			end
-			 
-			-- play the animation
-			toolAnimTrack:Play(transitionTime)
-			toolAnimName = animName
-			toolAnimInstance = anim
-
-			currentToolAnimKeyframeHandler = toolAnimTrack.KeyframeReached:connect(toolKeyFrameReachedFunc)
+	if toolAnimInstance ~= anim then
+		if toolAnimTrack ~= nil then
+			toolAnimTrack:Stop()
+			toolAnimTrack:Destroy()
+			transitionTime = 0
 		end
+
+		-- load it to the humanoid; get AnimationTrack
+		toolAnimTrack = humanoid:LoadAnimation(anim)
+		if priority then
+			toolAnimTrack.Priority = priority
+		end
+
+		-- play the animation
+		toolAnimTrack:Play(transitionTime)
+		toolAnimName = animName
+		toolAnimInstance = anim
+
+		currentToolAnimKeyframeHandler = toolAnimTrack.KeyframeReached:connect(toolKeyFrameReachedFunc)
+	end
 end
 
 function stopToolAnimations()
 	local oldAnim = toolAnimName
 
-	if (currentToolAnimKeyframeHandler ~= nil) then
+	if currentToolAnimKeyframeHandler ~= nil then
 		currentToolAnimKeyframeHandler:disconnect()
 	end
 
 	toolAnimName = ""
 	toolAnimInstance = nil
-	if (toolAnimTrack ~= nil) then
+	if toolAnimTrack ~= nil then
 		toolAnimTrack:Stop()
 		toolAnimTrack:Destroy()
 		toolAnimTrack = nil
@@ -581,8 +635,9 @@ end
 -- STATE CHANGE HANDLERS
 
 function onRunning(speed)
-	local movedDuringEmote =
-		userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
+	local movedDuringEmote = userEmoteToRunThresholdChange
+		and currentlyPlayingEmote
+		and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
 	local speedThreshold = movedDuringEmote and Humanoid.WalkSpeed or 0.75
 	if speed > speedThreshold then
 		local scale = 16.0
@@ -619,7 +674,7 @@ function onGettingUp()
 end
 
 function onFreeFall()
-	if (jumpAnimTime <= 0) then
+	if jumpAnimTime <= 0 then
 		playAnimation("fall", fallTransitionTime, Humanoid)
 	end
 	pose = "FreeFall"
@@ -653,17 +708,17 @@ function onSwimming(speed)
 end
 
 function animateTool()
-	if (toolAnim == "None") then
+	if toolAnim == "None" then
 		playToolAnimation("toolnone", toolTransitionTime, Humanoid, Enum.AnimationPriority.Idle)
 		return
 	end
 
-	if (toolAnim == "Slash") then
+	if toolAnim == "Slash" then
 		playToolAnimation("toolslash", 0, Humanoid, Enum.AnimationPriority.Action)
 		return
 	end
 
-	if (toolAnim == "Lunge") then
+	if toolAnim == "Lunge" then
 		playToolAnimation("toollunge", 0, Humanoid, Enum.AnimationPriority.Action)
 		return
 	end
@@ -683,24 +738,30 @@ local lastTick = 0
 function stepAnimate(currentTime)
 	local amplitude = 1
 	local frequency = 1
-  	local deltaTime = currentTime - lastTick
-  	lastTick = currentTime
+	local deltaTime = currentTime - lastTick
+	lastTick = currentTime
 
 	local climbFudge = 0
 	local setAngles = false
 
-  	if (jumpAnimTime > 0) then
-  		jumpAnimTime = jumpAnimTime - deltaTime
-  	end
+	if jumpAnimTime > 0 then
+		jumpAnimTime = jumpAnimTime - deltaTime
+	end
 
-	if (pose == "FreeFall" and jumpAnimTime <= 0) then
+	if pose == "FreeFall" and jumpAnimTime <= 0 then
 		playAnimation("fall", fallTransitionTime, Humanoid)
-	elseif (pose == "Seated") then
+	elseif pose == "Seated" then
 		playAnimation("sit", 0.5, Humanoid)
 		return
-	elseif (pose == "Running") then
+	elseif pose == "Running" then
 		playAnimation("walk", 0.2, Humanoid)
-	elseif (pose == "Dead" or pose == "GettingUp" or pose == "FallingDown" or pose == "Seated" or pose == "PlatformStanding") then
+	elseif
+		pose == "Dead"
+		or pose == "GettingUp"
+		or pose == "FallingDown"
+		or pose == "Seated"
+		or pose == "PlatformStanding"
+	then
 		stopAllAnimations()
 		amplitude = 0.1
 		frequency = 1
@@ -716,7 +777,7 @@ function stepAnimate(currentTime)
 			toolAnim = animStringValueObject.Value
 			-- message recieved, delete StringValue
 			animStringValueObject.Parent = nil
-			toolAnimTime = currentTime + .3
+			toolAnimTime = currentTime + 0.3
 		end
 
 		if currentTime > toolAnimTime then
@@ -724,7 +785,7 @@ function stepAnimate(currentTime)
 			toolAnim = "None"
 		end
 
-		animateTool()		
+		animateTool()
 	else
 		stopToolAnimations()
 		toolAnim = "None"
@@ -748,13 +809,13 @@ Humanoid.Swimming:connect(onSwimming)
 -- setup emote chat hook
 game:GetService("Players").LocalPlayer.Chatted:connect(function(msg)
 	local emote = ""
-	if (string.sub(msg, 1, 3) == "/e ") then
+	if string.sub(msg, 1, 3) == "/e " then
 		emote = string.sub(msg, 4)
-	elseif (string.sub(msg, 1, 7) == "/emote ") then
+	elseif string.sub(msg, 1, 7) == "/emote " then
 		emote = string.sub(msg, 8)
 	end
-	
-	if (pose == "Standing" and emoteNames[emote] ~= nil) then
+
+	if pose == "Standing" and emoteNames[emote] ~= nil then
 		playAnimation(emote, EMOTE_TRANSITION_TIME, Humanoid)
 	end
 end)
@@ -769,7 +830,7 @@ script:WaitForChild("PlayEmote").OnInvoke = function(emote)
 	if emoteNames[emote] ~= nil then
 		-- Default emotes
 		playAnimation(emote, EMOTE_TRANSITION_TIME, Humanoid)
-		
+
 		if userPlayEmoteByIdAnimTrackReturn then
 			return true, currentAnimTrack
 		else
@@ -785,7 +846,7 @@ script:WaitForChild("PlayEmote").OnInvoke = function(emote)
 			return true
 		end
 	end
-	
+
 	-- Return false to indicate that the emote could not be played
 	return false
 end
@@ -801,4 +862,3 @@ while Character.Parent ~= nil do
 	local _, currentGameTime = wait(0.1)
 	stepAnimate(currentGameTime)
 end
-

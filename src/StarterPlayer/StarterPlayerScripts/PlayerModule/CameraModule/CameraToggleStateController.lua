@@ -32,7 +32,8 @@ end
 
 local Input = require(script.Parent:WaitForChild("CameraInput"))
 local CameraUI = require(script.Parent:WaitForChild("CameraUI"))
-local CameraUtils: any = if FFlagUserCameraToggleDontSetMouseIconEveryFrame or FFlagUserCameraToggleDontSetMouseBehaviorOrRotationTypeEveryFrame
+local CameraUtils: any = if FFlagUserCameraToggleDontSetMouseIconEveryFrame
+		or FFlagUserCameraToggleDontSetMouseBehaviorOrRotationTypeEveryFrame
 	then require(script.Parent:WaitForChild("CameraUtils"))
 	else nil
 
@@ -104,7 +105,6 @@ return function(isFirstPerson: boolean)
 				GameSettings.RotationType = Enum.RotationType.CameraRelative
 			end
 		end
-
 	elseif Input.getTogglePan() then
 		if FFlagUserCameraToggleDontSetMouseIconEveryFrame then
 			CameraUtils.setMouseIconOverride(CROSS_MOUSE_ICON)
@@ -118,7 +118,6 @@ return function(isFirstPerson: boolean)
 			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 			GameSettings.RotationType = Enum.RotationType.MovementRelative
 		end
-
 	elseif Input.getHoldPan() then
 		if FFlagUserCameraToggleDontSetMouseIconEveryFrame then
 			CameraUtils.restoreMouseIcon()
@@ -132,7 +131,6 @@ return function(isFirstPerson: boolean)
 			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
 			GameSettings.RotationType = Enum.RotationType.MovementRelative
 		end
-
 	else
 		if FFlagUserCameraToggleDontSetMouseIconEveryFrame then
 			CameraUtils.restoreMouseIcon()

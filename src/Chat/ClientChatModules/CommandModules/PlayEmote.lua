@@ -1,188 +1,188 @@
-local Chat = game:GetService('Chat')
-local Players = game:GetService('Players')
+local Chat = game:GetService("Chat")
+local Players = game:GetService("Players")
 local CommandModules = script.Parent
-local Util = require(CommandModules:WaitForChild('Util'))
+local Util = require(CommandModules:WaitForChild("Util"))
 local ChatLocalization = nil
 
 pcall(function()
-    ChatLocalization = require(Chat.ClientChatModules.ChatLocalization)
+	ChatLocalization = require(Chat.ClientChatModules.ChatLocalization)
 end)
 
 if ChatLocalization == nil then
-    ChatLocalization = {
-        Get = function(self, key, fallback)
-            return fallback
-        end,
-    }
+	ChatLocalization = {
+		Get = function(self, key, fallback)
+			return fallback
+		end,
+	}
 end
 
 local LocalPlayer = Players.LocalPlayer
 local UserPlayEmoteChatTextUpdates
 
 do
-    local success, value = pcall(function()
-        return UserSettings():IsUserFeatureEnabled('UserPlayEmoteChatTextUpdates')
-    end)
+	local success, value = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserPlayEmoteChatTextUpdates")
+	end)
 
-    UserPlayEmoteChatTextUpdates = success and value
+	UserPlayEmoteChatTextUpdates = success and value
 end
 
 local LegacyDefaultEmotes = {
-    wave = true,
-    point = true,
-    dance = true,
-    dance2 = true,
-    dance3 = true,
-    laugh = true,
-    cheer = true,
+	wave = true,
+	point = true,
+	dance = true,
+	dance2 = true,
+	dance3 = true,
+	laugh = true,
+	cheer = true,
 }
 local LocalizationKeys = {
-    NotSupported = 'InGame.Chat.Response.EmotesNotSupported',
-    R15Only = 'InGame.Chat.Response.EmotesWrongAvatarType',
-    SwitchToR15 = 'InGame.Chat.ErrorMessageSwitchToR15',
-    NoMatchingEmote = 'InGame.Chat.Response.EmoteNotAvailable',
-    TemporarilyUnavailable = 'InGame.Chat.Response.EmotesTemporarilyUnavailable',
-    AnimationPlaying = 'InGame.Chat.ErrorMessageAnimationPlaying',
+	NotSupported = "InGame.Chat.Response.EmotesNotSupported",
+	R15Only = "InGame.Chat.Response.EmotesWrongAvatarType",
+	SwitchToR15 = "InGame.Chat.ErrorMessageSwitchToR15",
+	NoMatchingEmote = "InGame.Chat.Response.EmoteNotAvailable",
+	TemporarilyUnavailable = "InGame.Chat.Response.EmotesTemporarilyUnavailable",
+	AnimationPlaying = "InGame.Chat.ErrorMessageAnimationPlaying",
 }
 local FallbackStrings = {
-    [LocalizationKeys.NotSupported] = "You can't use Emotes here.",
-    [LocalizationKeys.R15Only] = 'Only R15 avatars can use Emotes.',
-    [LocalizationKeys.SwitchToR15] = 'Switch to your R15 avatar to play Emote.',
-    [LocalizationKeys.NoMatchingEmote] = "You can't use that Emote.",
-    [LocalizationKeys.TemporarilyUnavailable] = "You can't use Emotes right now.",
-    [LocalizationKeys.AnimationPlaying] = 'You cannot play Emotes during this action.',
+	[LocalizationKeys.NotSupported] = "You can't use Emotes here.",
+	[LocalizationKeys.R15Only] = "Only R15 avatars can use Emotes.",
+	[LocalizationKeys.SwitchToR15] = "Switch to your R15 avatar to play Emote.",
+	[LocalizationKeys.NoMatchingEmote] = "You can't use that Emote.",
+	[LocalizationKeys.TemporarilyUnavailable] = "You can't use Emotes right now.",
+	[LocalizationKeys.AnimationPlaying] = "You cannot play Emotes during this action.",
 }
 local ErrorColor = Color3.fromRGB(245, 50, 50)
 
 local function getEmoteName(message)
-    if string.sub(message, 1, 3) == '/e ' then
-        return string.sub(message, 4)
-    elseif string.sub(message, 1, 7) == '/emote ' then
-        return string.sub(message, 8)
-    end
+	if string.sub(message, 1, 3) == "/e " then
+		return string.sub(message, 4)
+	elseif string.sub(message, 1, 7) == "/emote " then
+		return string.sub(message, 8)
+	end
 
-    return nil
+	return nil
 end
 local function sendErrorMessage(channelObj, errorMessageKey)
-    local localizedString = ChatLocalization:Get(errorMessageKey, FallbackStrings[errorMessageKey])
-    local extraData = {ChatColor = ErrorColor}
+	local localizedString = ChatLocalization:Get(errorMessageKey, FallbackStrings[errorMessageKey])
+	local extraData = { ChatColor = ErrorColor }
 
-    Util:SendSystemMessageToSelf(localizedString, channelObj, extraData)
+	Util:SendSystemMessageToSelf(localizedString, channelObj, extraData)
 end
 local function ProcessMessage(message, ChatWindow, ChatSettings)
-    local emoteName = getEmoteName(message)
+	local emoteName = getEmoteName(message)
 
-    if not emoteName then
-        return false
-    end
-    if LegacyDefaultEmotes[emoteName] then
-        return true
-    end
+	if not emoteName then
+		return false
+	end
+	if LegacyDefaultEmotes[emoteName] then
+		return true
+	end
 
-    local channelObj = ChatWindow:GetCurrentChannel()
+	local channelObj = ChatWindow:GetCurrentChannel()
 
-    if not channelObj then
-        return true
-    end
+	if not channelObj then
+		return true
+	end
 
-    local character = LocalPlayer.Character
+	local character = LocalPlayer.Character
 
-    if not character then
-        sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
+	if not character then
+		sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
 
-        return true
-    end
+		return true
+	end
 
-    local animateScript = character:FindFirstChild('Animate')
+	local animateScript = character:FindFirstChild("Animate")
 
-    if not animateScript then
-        sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
+	if not animateScript then
+		sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
 
-        return true
-    end
+		return true
+	end
 
-    local playEmoteBindable = animateScript:FindFirstChild('PlayEmote')
+	local playEmoteBindable = animateScript:FindFirstChild("PlayEmote")
 
-    if not playEmoteBindable then
-        sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
+	if not playEmoteBindable then
+		sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
 
-        return true
-    end
+		return true
+	end
 
-    local humanoid = character:FindFirstChildOfClass('Humanoid')
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
 
-    if not humanoid then
-        sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
+	if not humanoid then
+		sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
 
-        return true
-    end
-    if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
-        if UserPlayEmoteChatTextUpdates then
-            sendErrorMessage(channelObj, LocalizationKeys.SwitchToR15)
-        else
-            sendErrorMessage(channelObj, LocalizationKeys.R15Only)
-        end
+		return true
+	end
+	if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		if UserPlayEmoteChatTextUpdates then
+			sendErrorMessage(channelObj, LocalizationKeys.SwitchToR15)
+		else
+			sendErrorMessage(channelObj, LocalizationKeys.R15Only)
+		end
 
-        return true
-    end
+		return true
+	end
 
-    local humanoidDescription = humanoid:FindFirstChildOfClass('HumanoidDescription')
+	local humanoidDescription = humanoid:FindFirstChildOfClass("HumanoidDescription")
 
-    if not humanoidDescription then
-        sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
+	if not humanoidDescription then
+		sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
 
-        return true
-    end
+		return true
+	end
 
-    local lowerCaseEmoteNamesMap = {}
-    local emotes = humanoidDescription:GetEmotes()
+	local lowerCaseEmoteNamesMap = {}
+	local emotes = humanoidDescription:GetEmotes()
 
-    for name, _ in pairs(emotes)do
-        lowerCaseEmoteNamesMap[string.lower(name)] = name
-    end
+	for name, _ in pairs(emotes) do
+		lowerCaseEmoteNamesMap[string.lower(name)] = name
+	end
 
-    local slot = tonumber(emoteName)
+	local slot = tonumber(emoteName)
 
-    if slot then
-        local equippedEmotes = humanoidDescription:GetEquippedEmotes()
+	if slot then
+		local equippedEmotes = humanoidDescription:GetEquippedEmotes()
 
-        for _, emoteInfo in pairs(equippedEmotes)do
-            if emoteInfo.Slot == slot then
-                emoteName = emoteInfo.Name
-            end
-        end
-    end
+		for _, emoteInfo in pairs(equippedEmotes) do
+			if emoteInfo.Slot == slot then
+				emoteName = emoteInfo.Name
+			end
+		end
+	end
 
-    local emoteNameLower = string.lower(emoteName)
+	local emoteNameLower = string.lower(emoteName)
 
-    emoteName = lowerCaseEmoteNamesMap[emoteNameLower]
+	emoteName = lowerCaseEmoteNamesMap[emoteNameLower]
 
-    if not emoteName then
-        sendErrorMessage(channelObj, LocalizationKeys.NoMatchingEmote)
+	if not emoteName then
+		sendErrorMessage(channelObj, LocalizationKeys.NoMatchingEmote)
 
-        return true
-    end
+		return true
+	end
 
-    spawn(function()
-        local ok, didPlay = pcall(function()
-            return humanoid:PlayEmote(emoteName)
-        end)
+	spawn(function()
+		local ok, didPlay = pcall(function()
+			return humanoid:PlayEmote(emoteName)
+		end)
 
-        if not ok then
-            sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
-        elseif not didPlay then
-            if UserPlayEmoteChatTextUpdates then
-                sendErrorMessage(channelObj, LocalizationKeys.AnimationPlaying)
-            else
-                sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
-            end
-        end
-    end)
+		if not ok then
+			sendErrorMessage(channelObj, LocalizationKeys.NotSupported)
+		elseif not didPlay then
+			if UserPlayEmoteChatTextUpdates then
+				sendErrorMessage(channelObj, LocalizationKeys.AnimationPlaying)
+			else
+				sendErrorMessage(channelObj, LocalizationKeys.TemporarilyUnavailable)
+			end
+		end
+	end)
 
-    return true
+	return true
 end
 
-return{
-    [Util.KEY_COMMAND_PROCESSOR_TYPE] = Util.COMPLETED_MESSAGE_PROCESSOR,
-    [Util.KEY_PROCESSOR_FUNCTION] = ProcessMessage,
+return {
+	[Util.KEY_COMMAND_PROCESSOR_TYPE] = Util.COMPLETED_MESSAGE_PROCESSOR,
+	[Util.KEY_PROCESSOR_FUNCTION] = ProcessMessage,
 }

@@ -1,154 +1,224 @@
-local Chat = game:GetService('Chat')
-local ReplicatedModules = Chat:WaitForChild('ClientChatModules')
-local ChatModules = Chat:WaitForChild('ChatModules')
-local ChatConstants = require(ReplicatedModules:WaitForChild('ChatConstants'))
-local ChatSettings = require(ReplicatedModules:WaitForChild('ChatSettings'))
+local Chat = game:GetService("Chat")
+local ReplicatedModules = Chat:WaitForChild("ClientChatModules")
+local ChatModules = Chat:WaitForChild("ChatModules")
+local ChatConstants = require(ReplicatedModules:WaitForChild("ChatConstants"))
+local ChatSettings = require(ReplicatedModules:WaitForChild("ChatSettings"))
 local DisplayNameHelpers = require(ChatModules.Utility.DisplayNameHelpers)
 local ChatLocalization = nil
 
 pcall(function()
-    ChatLocalization = require(game:GetService('Chat').ClientChatModules.ChatLocalization)
+	ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization)
 end)
 
 if ChatLocalization == nil then
-    ChatLocalization = {}
+	ChatLocalization = {}
 end
 if not ChatLocalization.FormatMessageToSend or not ChatLocalization.LocalizeFormattedMessage then
-    function ChatLocalization:FormatMessageToSend(key, default)
-        return default
-    end
+	function ChatLocalization:FormatMessageToSend(key, default)
+		return default
+	end
 end
 
 local errorTextColor = ChatSettings.ErrorMessageTextColor or Color3.fromRGB(245, 50, 50)
-local errorExtraData = {ChatColor = errorTextColor}
+local errorExtraData = { ChatColor = errorTextColor }
 
 local function Run(ChatService)
-    local function GetSpeakerNameFromMessage(message)
-        local speakerName = message
+	local function GetSpeakerNameFromMessage(message)
+		local speakerName = message
 
-        if string.sub(message, 1, 1) == '"' then
-            local pos = string.find(message, '"', 2)
+		if string.sub(message, 1, 1) == '"' then
+			local pos = string.find(message, '"', 2)
 
-            if pos then
-                speakerName = string.sub(message, 2, pos - 1)
-            end
-        else
-            local first = string.match(message, '^[^%s]+')
+			if pos then
+				speakerName = string.sub(message, 2, pos - 1)
+			end
+		else
+			local first = string.match(message, "^[^%s]+")
 
-            if first then
-                speakerName = first
-            end
-        end
+			if first then
+				speakerName = first
+			end
+		end
 
-        return speakerName
-    end
-    local function DoMuteCommand(speakerName, message, channel)
-        local muteSpeakerInputName = GetSpeakerNameFromMessage(message)
-        local speaker = ChatService:GetSpeaker(speakerName)
+		return speakerName
+	end
+	local function DoMuteCommand(speakerName, message, channel)
+		local muteSpeakerInputName = GetSpeakerNameFromMessage(message)
+		local speaker = ChatService:GetSpeaker(speakerName)
 
-        if speaker then
-            local muteSpeakerName, muteSpeakerError
+		if speaker then
+			local muteSpeakerName, muteSpeakerError
 
-            if ChatSettings.PlayerDisplayNamesEnabled then
-                muteSpeakerName, muteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(muteSpeakerInputName, speakerName, speaker:GetNameForDisplay())
-            else
-                muteSpeakerName, muteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(muteSpeakerInputName, speakerName, nil)
-            end
+			if ChatSettings.PlayerDisplayNamesEnabled then
+				muteSpeakerName, muteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(
+					muteSpeakerInputName,
+					speakerName,
+					speaker:GetNameForDisplay()
+				)
+			else
+				muteSpeakerName, muteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(
+					muteSpeakerInputName,
+					speakerName,
+					nil
+				)
+			end
 
-            local muteSpeaker = ChatService:GetSpeaker(muteSpeakerName)
+			local muteSpeaker = ChatService:GetSpeaker(muteSpeakerName)
 
-            if muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.ChattingToSelf then
-                speaker:SendSystemMessage(ChatLocalization:FormatMessageToSend('GameChat_DoMuteCommand_CannotMuteSelf', 'You cannot mute yourself.'), channel, errorExtraData)
-            elseif muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.NoMatches then
-                local msg = ChatLocalization:FormatMessageToSend('GameChat_MuteSpeaker_SpeakerDoesNotExist', string.format("Speaker '%s' does not exist.", tostring(muteSpeakerInputName)), 'RBX_NAME', tostring(muteSpeakerName))
+			if muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.ChattingToSelf then
+				speaker:SendSystemMessage(
+					ChatLocalization:FormatMessageToSend(
+						"GameChat_DoMuteCommand_CannotMuteSelf",
+						"You cannot mute yourself."
+					),
+					channel,
+					errorExtraData
+				)
+			elseif muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.NoMatches then
+				local msg = ChatLocalization:FormatMessageToSend(
+					"GameChat_MuteSpeaker_SpeakerDoesNotExist",
+					string.format("Speaker '%s' does not exist.", tostring(muteSpeakerInputName)),
+					"RBX_NAME",
+					tostring(muteSpeakerName)
+				)
 
-                speaker:SendSystemMessage(msg, channel, errorExtraData)
-            elseif muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.MultipleMatches then
-                local matchingUsersText = DisplayNameHelpers.getUsersWithDisplayNameString(muteSpeakerInputName, speakerName)
+				speaker:SendSystemMessage(msg, channel, errorExtraData)
+			elseif muteSpeakerError == DisplayNameHelpers.CommandErrorCodes.MultipleMatches then
+				local matchingUsersText = DisplayNameHelpers.getUsersWithDisplayNameString(
+					muteSpeakerInputName,
+					speakerName
+				)
 
-                speaker:SendSystemMessage(ChatLocalization:FormatMessageToSend('InGame.Chat.Response.DisplayNameMultipleMatches', 'Warning: The following users have this display name: '), channel, errorExtraData)
-                speaker:SendSystemMessage(matchingUsersText, channel, errorExtraData)
-            elseif muteSpeaker then
-                speaker:AddMutedSpeaker(muteSpeaker.Name)
+				speaker:SendSystemMessage(
+					ChatLocalization:FormatMessageToSend(
+						"InGame.Chat.Response.DisplayNameMultipleMatches",
+						"Warning: The following users have this display name: "
+					),
+					channel,
+					errorExtraData
+				)
+				speaker:SendSystemMessage(matchingUsersText, channel, errorExtraData)
+			elseif muteSpeaker then
+				speaker:AddMutedSpeaker(muteSpeaker.Name)
 
-                local muteSpeakerDisplayName = muteSpeakerName
+				local muteSpeakerDisplayName = muteSpeakerName
 
-                if ChatSettings.PlayerDisplayNamesEnabled then
-                    muteSpeakerDisplayName = muteSpeaker:GetNameForDisplay()
-                end
+				if ChatSettings.PlayerDisplayNamesEnabled then
+					muteSpeakerDisplayName = muteSpeaker:GetNameForDisplay()
+				end
 
-                local msg = ChatLocalization:FormatMessageToSend('GameChat_ChatMain_SpeakerHasBeenMuted', string.format("Speaker '%s' has been muted.", muteSpeakerDisplayName), 'RBX_NAME', muteSpeakerDisplayName)
+				local msg = ChatLocalization:FormatMessageToSend(
+					"GameChat_ChatMain_SpeakerHasBeenMuted",
+					string.format("Speaker '%s' has been muted.", muteSpeakerDisplayName),
+					"RBX_NAME",
+					muteSpeakerDisplayName
+				)
 
-                speaker:SendSystemMessage(msg, channel)
-            end
-        end
-    end
-    local function DoUnmuteCommand(speakerName, message, channel)
-        local unmuteSpeakerInputName = GetSpeakerNameFromMessage(message)
-        local speaker = ChatService:GetSpeaker(speakerName)
+				speaker:SendSystemMessage(msg, channel)
+			end
+		end
+	end
+	local function DoUnmuteCommand(speakerName, message, channel)
+		local unmuteSpeakerInputName = GetSpeakerNameFromMessage(message)
+		local speaker = ChatService:GetSpeaker(speakerName)
 
-        if speaker then
-            local unmuteSpeakerName, unmuteSpeakerError
+		if speaker then
+			local unmuteSpeakerName, unmuteSpeakerError
 
-            if ChatSettings.PlayerDisplayNamesEnabled then
-                unmuteSpeakerName, unmuteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(unmuteSpeakerInputName, speakerName, speaker:GetNameForDisplay())
-            else
-                unmuteSpeakerName, unmuteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(unmuteSpeakerInputName, speakerName, nil)
-            end
+			if ChatSettings.PlayerDisplayNamesEnabled then
+				unmuteSpeakerName, unmuteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(
+					unmuteSpeakerInputName,
+					speakerName,
+					speaker:GetNameForDisplay()
+				)
+			else
+				unmuteSpeakerName, unmuteSpeakerError = DisplayNameHelpers.getUserNameFromChattedName(
+					unmuteSpeakerInputName,
+					speakerName,
+					nil
+				)
+			end
 
-            local unmuteSpeaker = ChatService:GetSpeaker(unmuteSpeakerName)
+			local unmuteSpeaker = ChatService:GetSpeaker(unmuteSpeakerName)
 
-            if unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.ChattingToSelf then
-                speaker:SendSystemMessage(ChatLocalization:FormatMessageToSend('GameChat_DoMuteCommand_CannotMuteSelf', 'You cannot mute yourself.'), channel, errorExtraData)
+			if unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.ChattingToSelf then
+				speaker:SendSystemMessage(
+					ChatLocalization:FormatMessageToSend(
+						"GameChat_DoMuteCommand_CannotMuteSelf",
+						"You cannot mute yourself."
+					),
+					channel,
+					errorExtraData
+				)
 
-                return
-            elseif unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.NoMatches then
-                local msg = ChatLocalization:FormatMessageToSend('GameChat_MuteSpeaker_SpeakerDoesNotExist', string.format("Speaker '%s' does not exist.", tostring(unmuteSpeakerName)), 'RBX_NAME', tostring(unmuteSpeakerName))
+				return
+			elseif unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.NoMatches then
+				local msg = ChatLocalization:FormatMessageToSend(
+					"GameChat_MuteSpeaker_SpeakerDoesNotExist",
+					string.format("Speaker '%s' does not exist.", tostring(unmuteSpeakerName)),
+					"RBX_NAME",
+					tostring(unmuteSpeakerName)
+				)
 
-                speaker:SendSystemMessage(msg, channel, errorExtraData)
+				speaker:SendSystemMessage(msg, channel, errorExtraData)
 
-                return
-            elseif unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.MultipleMatches then
-                local matchingUsersText = DisplayNameHelpers.getUsersWithDisplayNameString(unmuteSpeakerInputName, speakerName)
+				return
+			elseif unmuteSpeakerError == DisplayNameHelpers.CommandErrorCodes.MultipleMatches then
+				local matchingUsersText = DisplayNameHelpers.getUsersWithDisplayNameString(
+					unmuteSpeakerInputName,
+					speakerName
+				)
 
-                speaker:SendSystemMessage(ChatLocalization:FormatMessageToSend('InGame.Chat.Response.DisplayNameMultipleMatches', 'Warning: The following users have this display name: '), channel, errorExtraData)
-                speaker:SendSystemMessage(matchingUsersText, channel, errorExtraData)
+				speaker:SendSystemMessage(
+					ChatLocalization:FormatMessageToSend(
+						"InGame.Chat.Response.DisplayNameMultipleMatches",
+						"Warning: The following users have this display name: "
+					),
+					channel,
+					errorExtraData
+				)
+				speaker:SendSystemMessage(matchingUsersText, channel, errorExtraData)
 
-                return
-            elseif unmuteSpeaker then
-                speaker:RemoveMutedSpeaker(unmuteSpeaker.Name)
+				return
+			elseif unmuteSpeaker then
+				speaker:RemoveMutedSpeaker(unmuteSpeaker.Name)
 
-                local playerName = unmuteSpeakerName
+				local playerName = unmuteSpeakerName
 
-                if ChatSettings.PlayerDisplayNamesEnabled then
-                    playerName = unmuteSpeaker:GetNameForDisplay()
-                end
+				if ChatSettings.PlayerDisplayNamesEnabled then
+					playerName = unmuteSpeaker:GetNameForDisplay()
+				end
 
-                local msg = ChatLocalization:FormatMessageToSend('GameChat_ChatMain_SpeakerHasBeenUnMuted', string.format("Speaker '%s' has been unmuted.", playerName), 'RBX_NAME', playerName)
+				local msg = ChatLocalization:FormatMessageToSend(
+					"GameChat_ChatMain_SpeakerHasBeenUnMuted",
+					string.format("Speaker '%s' has been unmuted.", playerName),
+					"RBX_NAME",
+					playerName
+				)
 
-                speaker:SendSystemMessage(msg, channel)
+				speaker:SendSystemMessage(msg, channel)
 
-                return
-            end
-        end
-    end
-    local function MuteCommandsFunction(fromSpeaker, message, channel)
-        local processedCommand = false
+				return
+			end
+		end
+	end
+	local function MuteCommandsFunction(fromSpeaker, message, channel)
+		local processedCommand = false
 
-        if string.sub(message, 1, 6):lower() == '/mute ' then
-            DoMuteCommand(fromSpeaker, string.sub(message, 7), channel)
+		if string.sub(message, 1, 6):lower() == "/mute " then
+			DoMuteCommand(fromSpeaker, string.sub(message, 7), channel)
 
-            processedCommand = true
-        elseif string.sub(message, 1, 8):lower() == '/unmute ' then
-            DoUnmuteCommand(fromSpeaker, string.sub(message, 9), channel)
+			processedCommand = true
+		elseif string.sub(message, 1, 8):lower() == "/unmute " then
+			DoUnmuteCommand(fromSpeaker, string.sub(message, 9), channel)
 
-            processedCommand = true
-        end
+			processedCommand = true
+		end
 
-        return processedCommand
-    end
+		return processedCommand
+	end
 
-    ChatService:RegisterProcessCommandsFunction('mute_commands', MuteCommandsFunction, ChatConstants.StandardPriority)
+	ChatService:RegisterProcessCommandsFunction("mute_commands", MuteCommandsFunction, ChatConstants.StandardPriority)
 end
 
 return Run

@@ -1,99 +1,118 @@
-local Chat = game:GetService('Chat')
-local RunService = game:GetService('RunService')
-local ReplicatedModules = Chat:WaitForChild('ClientChatModules')
-local ChatSettings = require(ReplicatedModules:WaitForChild('ChatSettings'))
-local ChatConstants = require(ReplicatedModules:WaitForChild('ChatConstants'))
+local Chat = game:GetService("Chat")
+local RunService = game:GetService("RunService")
+local ReplicatedModules = Chat:WaitForChild("ClientChatModules")
+local ChatSettings = require(ReplicatedModules:WaitForChild("ChatSettings"))
+local ChatConstants = require(ReplicatedModules:WaitForChild("ChatConstants"))
 local ChatLocalization = nil
 
 pcall(function()
-    ChatLocalization = require(game:GetService('Chat').ClientChatModules.ChatLocalization)
+	ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization)
 end)
 
 if ChatLocalization == nil then
-    ChatLocalization = {}
+	ChatLocalization = {}
 end
 if not ChatLocalization.FormatMessageToSend or not ChatLocalization.LocalizeFormattedMessage then
-    function ChatLocalization:FormatMessageToSend(key, default)
-        return default
-    end
+	function ChatLocalization:FormatMessageToSend(key, default)
+		return default
+	end
 end
 
 local MAX_BYTES_PER_UTF8_CODEPOINT = 6
 local DISALLOWED_WHITESPACE = {
-    '\n',
-    '\r',
-    '\t',
-    '\v',
-    '\f',
+	"\n",
+	"\r",
+	"\t",
+	"\v",
+	"\f",
 }
 
 if ChatSettings.DisallowedWhiteSpace then
-    DISALLOWED_WHITESPACE = ChatSettings.DisallowedWhiteSpace
+	DISALLOWED_WHITESPACE = ChatSettings.DisallowedWhiteSpace
 end
 
 local function isMessageValidServer(msg)
-    if msg:len() > ChatSettings.MaximumMessageLength * MAX_BYTES_PER_UTF8_CODEPOINT then
-        return false
-    end
-    if utf8.len(msg) == nil then
-        return false
-    end
-    if utf8.len(utf8.nfcnormalize(msg)) > ChatSettings.MaximumMessageLength then
-        return false
-    end
+	if msg:len() > ChatSettings.MaximumMessageLength * MAX_BYTES_PER_UTF8_CODEPOINT then
+		return false
+	end
+	if utf8.len(msg) == nil then
+		return false
+	end
+	if utf8.len(utf8.nfcnormalize(msg)) > ChatSettings.MaximumMessageLength then
+		return false
+	end
 
-    return true
+	return true
 end
 local function CanUserChat(playerObj)
-    if RunService:IsStudio() then
-        return true
-    end
+	if RunService:IsStudio() then
+		return true
+	end
 
-    local success, canChat = pcall(function()
-        return Chat:CanUserChatAsync(playerObj.UserId)
-    end)
+	local success, canChat = pcall(function()
+		return Chat:CanUserChatAsync(playerObj.UserId)
+	end)
 
-    return success and canChat
+	return success and canChat
 end
 local function Run(ChatService)
-    local function ValidateChatFunction(speakerName, message, channel)
-        local speakerObj = ChatService:GetSpeaker(speakerName)
-        local playerObj = speakerObj:GetPlayer()
+	local function ValidateChatFunction(speakerName, message, channel)
+		local speakerObj = ChatService:GetSpeaker(speakerName)
+		local playerObj = speakerObj:GetPlayer()
 
-        if not speakerObj then
-            return false
-        end
-        if not playerObj then
-            return false
-        end
-        if not RunService:IsStudio() and playerObj.UserId < 1 then
-            return true
-        end
-        if not CanUserChat(playerObj) then
-            speakerObj:SendSystemMessage(ChatLocalization:FormatMessageToSend('GameChat_ChatMessageValidator_SettingsError', 'Your chat settings prevent you from sending messages.'), channel)
+		if not speakerObj then
+			return false
+		end
+		if not playerObj then
+			return false
+		end
+		if not RunService:IsStudio() and playerObj.UserId < 1 then
+			return true
+		end
+		if not CanUserChat(playerObj) then
+			speakerObj:SendSystemMessage(
+				ChatLocalization:FormatMessageToSend(
+					"GameChat_ChatMessageValidator_SettingsError",
+					"Your chat settings prevent you from sending messages."
+				),
+				channel
+			)
 
-            return true
-        end
-        if not isMessageValidServer(message) then
-            local localizedError = ChatLocalization:FormatMessageToSend('GameChat_ChatMessageValidator_MaxLengthError', 'Your message exceeds the maximum message length.')
+			return true
+		end
+		if not isMessageValidServer(message) then
+			local localizedError = ChatLocalization:FormatMessageToSend(
+				"GameChat_ChatMessageValidator_MaxLengthError",
+				"Your message exceeds the maximum message length."
+			)
 
-            speakerObj:SendSystemMessage(localizedError, channel)
+			speakerObj:SendSystemMessage(localizedError, channel)
 
-            return true
-        end
+			return true
+		end
 
-        for _, whitespace in pairs(DISALLOWED_WHITESPACE)do
-            if message:find(whitespace) then
-                speakerObj:SendSystemMessage(ChatLocalization:FormatMessageToSend('GameChat_ChatMessageValidator_WhitespaceError', 'Your message contains whitespace that is not allowed.'), channel)
+		for _, whitespace in pairs(DISALLOWED_WHITESPACE) do
+			if message:find(whitespace) then
+				speakerObj:SendSystemMessage(
+					ChatLocalization:FormatMessageToSend(
+						"GameChat_ChatMessageValidator_WhitespaceError",
+						"Your message contains whitespace that is not allowed."
+					),
+					channel
+				)
 
-                return true
-            end
-        end
+				return true
+			end
+		end
 
-        return false
-    end
+		return false
+	end
 
-    ChatService:RegisterProcessCommandsFunction('message_validation', ValidateChatFunction, ChatConstants.VeryHighPriority)
+	ChatService:RegisterProcessCommandsFunction(
+		"message_validation",
+		ValidateChatFunction,
+		ChatConstants.VeryHighPriority
+	)
 end
 
 return Run

@@ -1,367 +1,374 @@
 local module = {}
-local RunService = game:GetService('RunService')
-local Chat = game:GetService('Chat')
-local ReplicatedModules = Chat:WaitForChild('ClientChatModules')
-local ChatSettings = require(ReplicatedModules:WaitForChild('ChatSettings'))
+local RunService = game:GetService("RunService")
+local Chat = game:GetService("Chat")
+local ReplicatedModules = Chat:WaitForChild("ClientChatModules")
+local ChatSettings = require(ReplicatedModules:WaitForChild("ChatSettings"))
 local modulesFolder = script.Parent
 local UserFlagRemoveMessageOnTextFilterFailures
 
 do
-    local success, value = pcall(function()
-        return UserSettings():IsUserFeatureEnabled('UserRemoveMessageOnTextFilterFailures')
-    end)
+	local success, value = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserRemoveMessageOnTextFilterFailures")
+	end)
 
-    UserFlagRemoveMessageOnTextFilterFailures = success and value
+	UserFlagRemoveMessageOnTextFilterFailures = success and value
 end
 
 local function ShallowCopy(table)
-    local copy = {}
+	local copy = {}
 
-    for i, v in pairs(table)do
-        copy[i] = v
-    end
+	for i, v in pairs(table) do
+		copy[i] = v
+	end
 
-    return copy
+	return copy
 end
 
 local methods = {}
 local lazyEventNames = {
-    eDestroyed = true,
-    eSaidMessage = true,
-    eReceivedMessage = true,
-    eReceivedUnfilteredMessage = true,
-    eMessageDoneFiltering = true,
-    eReceivedSystemMessage = true,
-    eChannelJoined = true,
-    eChannelLeft = true,
-    eMuted = true,
-    eUnmuted = true,
-    eExtraDataUpdated = true,
-    eMainChannelSet = true,
-    eChannelNameColorUpdated = true,
+	eDestroyed = true,
+	eSaidMessage = true,
+	eReceivedMessage = true,
+	eReceivedUnfilteredMessage = true,
+	eMessageDoneFiltering = true,
+	eReceivedSystemMessage = true,
+	eChannelJoined = true,
+	eChannelLeft = true,
+	eMuted = true,
+	eUnmuted = true,
+	eExtraDataUpdated = true,
+	eMainChannelSet = true,
+	eChannelNameColorUpdated = true,
 }
 local lazySignalNames = {
-    Destroyed = 'eDestroyed',
-    SaidMessage = 'eSaidMessage',
-    ReceivedMessage = 'eReceivedMessage',
-    ReceivedUnfilteredMessage = 'eReceivedUnfilteredMessage',
-    RecievedUnfilteredMessage = 'eReceivedUnfilteredMessage',
-    MessageDoneFiltering = 'eMessageDoneFiltering',
-    ReceivedSystemMessage = 'eReceivedSystemMessage',
-    ChannelJoined = 'eChannelJoined',
-    ChannelLeft = 'eChannelLeft',
-    Muted = 'eMuted',
-    Unmuted = 'eUnmuted',
-    ExtraDataUpdated = 'eExtraDataUpdated',
-    MainChannelSet = 'eMainChannelSet',
-    ChannelNameColorUpdated = 'eChannelNameColorUpdated',
+	Destroyed = "eDestroyed",
+	SaidMessage = "eSaidMessage",
+	ReceivedMessage = "eReceivedMessage",
+	ReceivedUnfilteredMessage = "eReceivedUnfilteredMessage",
+	RecievedUnfilteredMessage = "eReceivedUnfilteredMessage",
+	MessageDoneFiltering = "eMessageDoneFiltering",
+	ReceivedSystemMessage = "eReceivedSystemMessage",
+	ChannelJoined = "eChannelJoined",
+	ChannelLeft = "eChannelLeft",
+	Muted = "eMuted",
+	Unmuted = "eUnmuted",
+	ExtraDataUpdated = "eExtraDataUpdated",
+	MainChannelSet = "eMainChannelSet",
+	ChannelNameColorUpdated = "eChannelNameColorUpdated",
 }
 
 methods.__index = function(self, k)
-    local fromMethods = rawget(methods, k)
+	local fromMethods = rawget(methods, k)
 
-    if fromMethods then
-        return fromMethods
-    end
-    if lazyEventNames[k] and not rawget(self, k) then
-        rawset(self, k, Instance.new('BindableEvent'))
-    end
+	if fromMethods then
+		return fromMethods
+	end
+	if lazyEventNames[k] and not rawget(self, k) then
+		rawset(self, k, Instance.new("BindableEvent"))
+	end
 
-    local lazySignalEventName = lazySignalNames[k]
+	local lazySignalEventName = lazySignalNames[k]
 
-    if lazySignalEventName and not rawget(self, k) then
-        if not rawget(self, lazySignalEventName) then
-            rawset(self, lazySignalEventName, Instance.new('BindableEvent'))
-        end
+	if lazySignalEventName and not rawget(self, k) then
+		if not rawget(self, lazySignalEventName) then
+			rawset(self, lazySignalEventName, Instance.new("BindableEvent"))
+		end
 
-        rawset(self, k, rawget(self, lazySignalEventName).Event)
-    end
+		rawset(self, k, rawget(self, lazySignalEventName).Event)
+	end
 
-    return rawget(self, k)
+	return rawget(self, k)
 end
 
 function methods:LazyFire(eventName, ...)
-    local createdEvent = rawget(self, eventName)
+	local createdEvent = rawget(self, eventName)
 
-    if createdEvent then
-        createdEvent:Fire(...)
-    end
+	if createdEvent then
+		createdEvent:Fire(...)
+	end
 end
 function methods:SayMessage(message, channelName, extraData)
-    if self.ChatService:InternalDoProcessCommands(self.Name, message, channelName) then
-        return
-    end
-    if not channelName then
-        return
-    end
+	if self.ChatService:InternalDoProcessCommands(self.Name, message, channelName) then
+		return
+	end
+	if not channelName then
+		return
+	end
 
-    local channel = self.Channels[channelName:lower()]
+	local channel = self.Channels[channelName:lower()]
 
-    if not channel then
-        return
-    end
+	if not channel then
+		return
+	end
 
-    local messageObj = channel:InternalPostMessage(self, message, extraData)
+	local messageObj = channel:InternalPostMessage(self, message, extraData)
 
-    if messageObj then
-        pcall(function()
-            self:LazyFire('eSaidMessage', messageObj, channelName)
-        end)
-    end
+	if messageObj then
+		pcall(function()
+			self:LazyFire("eSaidMessage", messageObj, channelName)
+		end)
+	end
 
-    return messageObj
+	return messageObj
 end
 function methods:JoinChannel(channelName)
-    if (self.Channels[channelName:lower()]) then
-        warn('Speaker is already in channel "' .. channelName .. '"')
+	if self.Channels[channelName:lower()] then
+		warn('Speaker is already in channel "' .. channelName .. '"')
 
-        return
-    end
+		return
+	end
 
-    local channel = self.ChatService:GetChannel(channelName)
+	local channel = self.ChatService:GetChannel(channelName)
 
-    if (not channel) then
-        error('Channel "' .. channelName .. '" does not exist!')
-    end
+	if not channel then
+		error('Channel "' .. channelName .. '" does not exist!')
+	end
 
-    self.Channels[channelName:lower()] = channel
+	self.Channels[channelName:lower()] = channel
 
-    channel:InternalAddSpeaker(self)
+	channel:InternalAddSpeaker(self)
 
-    local success, err = pcall(function()
-        self.eChannelJoined:Fire(channel.Name, channel:GetWelcomeMessageForSpeaker(self))
-    end)
+	local success, err = pcall(function()
+		self.eChannelJoined:Fire(channel.Name, channel:GetWelcomeMessageForSpeaker(self))
+	end)
 
-    if not success and err then
-        print('Error joining channel: ' .. err)
-    end
+	if not success and err then
+		print("Error joining channel: " .. err)
+	end
 end
 function methods:LeaveChannel(channelName)
-    if (not self.Channels[channelName:lower()]) then
-        warn('Speaker is not in channel "' .. channelName .. '"')
+	if not self.Channels[channelName:lower()] then
+		warn('Speaker is not in channel "' .. channelName .. '"')
 
-        return
-    end
+		return
+	end
 
-    local channel = self.Channels[channelName:lower()]
+	local channel = self.Channels[channelName:lower()]
 
-    self.Channels[channelName:lower()] = nil
+	self.Channels[channelName:lower()] = nil
 
-    channel:InternalRemoveSpeaker(self)
+	channel:InternalRemoveSpeaker(self)
 
-    local success, err = pcall(function()
-        self:LazyFire('eChannelLeft', channel.Name)
+	local success, err = pcall(function()
+		self:LazyFire("eChannelLeft", channel.Name)
 
-        if self.PlayerObj then
-            self.EventFolder.OnChannelLeft:FireClient(self.PlayerObj, channel.Name)
-        end
-    end)
+		if self.PlayerObj then
+			self.EventFolder.OnChannelLeft:FireClient(self.PlayerObj, channel.Name)
+		end
+	end)
 
-    if not success and err then
-        print('Error leaving channel: ' .. err)
-    end
+	if not success and err then
+		print("Error leaving channel: " .. err)
+	end
 end
 function methods:IsInChannel(channelName)
-    return(self.Channels[channelName:lower()] ~= nil)
+	return (self.Channels[channelName:lower()] ~= nil)
 end
 function methods:GetChannelList()
-    local list = {}
+	local list = {}
 
-    for i, channel in pairs(self.Channels)do
-        table.insert(list, channel.Name)
-    end
+	for i, channel in pairs(self.Channels) do
+		table.insert(list, channel.Name)
+	end
 
-    return list
+	return list
 end
 function methods:SendMessage(message, channelName, fromSpeaker, extraData)
-    local channel = self.Channels[channelName:lower()]
+	local channel = self.Channels[channelName:lower()]
 
-    if (channel) then
-        channel:SendMessageToSpeaker(message, self.Name, fromSpeaker, extraData)
-    elseif RunService:IsStudio() then
-        warn(string.format(
-[[Speaker '%s' is not in channel '%s' and cannot receive a message in it.]], self.Name, channelName))
-    end
+	if channel then
+		channel:SendMessageToSpeaker(message, self.Name, fromSpeaker, extraData)
+	elseif RunService:IsStudio() then
+		warn(
+			string.format(
+				[[Speaker '%s' is not in channel '%s' and cannot receive a message in it.]],
+				self.Name,
+				channelName
+			)
+		)
+	end
 end
 function methods:SendSystemMessage(message, channelName, extraData)
-    local channel = self.Channels[channelName:lower()]
+	local channel = self.Channels[channelName:lower()]
 
-    if (channel) then
-        channel:SendSystemMessageToSpeaker(message, self.Name, extraData)
-    elseif RunService:IsStudio() then
-        warn(string.format(
-[[Speaker '%s' is not in channel '%s' and cannot receive a system message in it.]], self.Name, channelName))
-    end
+	if channel then
+		channel:SendSystemMessageToSpeaker(message, self.Name, extraData)
+	elseif RunService:IsStudio() then
+		warn(
+			string.format(
+				[[Speaker '%s' is not in channel '%s' and cannot receive a system message in it.]],
+				self.Name,
+				channelName
+			)
+		)
+	end
 end
 function methods:GetPlayer()
-    return self.PlayerObj
+	return self.PlayerObj
 end
 function methods:GetNameForDisplay()
-    if ChatSettings.PlayerDisplayNamesEnabled then
-        local player = self:GetPlayer()
+	if ChatSettings.PlayerDisplayNamesEnabled then
+		local player = self:GetPlayer()
 
-        if player then
-            return player.DisplayName
-        else
-            return self.Name
-        end
-    else
-        return self.Name
-    end
+		if player then
+			return player.DisplayName
+		else
+			return self.Name
+		end
+	else
+		return self.Name
+	end
 end
 function methods:SetExtraData(key, value)
-    self.ExtraData[key] = value
+	self.ExtraData[key] = value
 
-    self:LazyFire('eExtraDataUpdated', key, value)
+	self:LazyFire("eExtraDataUpdated", key, value)
 end
 function methods:GetExtraData(key)
-    return self.ExtraData[key]
+	return self.ExtraData[key]
 end
 function methods:SetMainChannel(channelName)
-    local success, err = pcall(function()
-        self:LazyFire('eMainChannelSet', channelName)
+	local success, err = pcall(function()
+		self:LazyFire("eMainChannelSet", channelName)
 
-        if self.PlayerObj then
-            self.EventFolder.OnMainChannelSet:FireClient(self.PlayerObj, channelName)
-        end
-    end)
+		if self.PlayerObj then
+			self.EventFolder.OnMainChannelSet:FireClient(self.PlayerObj, channelName)
+		end
+	end)
 
-    if not success and err then
-        print('Error setting main channel: ' .. err)
-    end
+	if not success and err then
+		print("Error setting main channel: " .. err)
+	end
 end
 function methods:AddMutedSpeaker(speakerName)
-    self.MutedSpeakers[speakerName:lower()] = true
+	self.MutedSpeakers[speakerName:lower()] = true
 end
 function methods:RemoveMutedSpeaker(speakerName)
-    self.MutedSpeakers[speakerName:lower()] = false
+	self.MutedSpeakers[speakerName:lower()] = false
 end
 function methods:IsSpeakerMuted(speakerName)
-    return self.MutedSpeakers[speakerName:lower()]
+	return self.MutedSpeakers[speakerName:lower()]
 end
 function methods:InternalDestroy()
-    for i, channel in pairs(self.Channels)do
-        channel:InternalRemoveSpeaker(self)
-    end
+	for i, channel in pairs(self.Channels) do
+		channel:InternalRemoveSpeaker(self)
+	end
 
-    self.eDestroyed:Fire()
+	self.eDestroyed:Fire()
 
-    self.EventFolder = nil
+	self.EventFolder = nil
 
-    self.eDestroyed:Destroy()
-    self.eSaidMessage:Destroy()
-    self.eReceivedMessage:Destroy()
-    self.eReceivedUnfilteredMessage:Destroy()
-    self.eMessageDoneFiltering:Destroy()
-    self.eReceivedSystemMessage:Destroy()
-    self.eChannelJoined:Destroy()
-    self.eChannelLeft:Destroy()
-    self.eMuted:Destroy()
-    self.eUnmuted:Destroy()
-    self.eExtraDataUpdated:Destroy()
-    self.eMainChannelSet:Destroy()
-    self.eChannelNameColorUpdated:Destroy()
+	self.eDestroyed:Destroy()
+	self.eSaidMessage:Destroy()
+	self.eReceivedMessage:Destroy()
+	self.eReceivedUnfilteredMessage:Destroy()
+	self.eMessageDoneFiltering:Destroy()
+	self.eReceivedSystemMessage:Destroy()
+	self.eChannelJoined:Destroy()
+	self.eChannelLeft:Destroy()
+	self.eMuted:Destroy()
+	self.eUnmuted:Destroy()
+	self.eExtraDataUpdated:Destroy()
+	self.eMainChannelSet:Destroy()
+	self.eChannelNameColorUpdated:Destroy()
 end
 function methods:InternalAssignPlayerObject(playerObj)
-    self.PlayerObj = playerObj
+	self.PlayerObj = playerObj
 end
 function methods:InternalAssignEventFolder(eventFolder)
-    self.EventFolder = eventFolder
+	self.EventFolder = eventFolder
 end
 function methods:InternalSendMessage(messageObj, channelName)
-    local success, err = pcall(function()
-        self:LazyFire('eReceivedUnfilteredMessage', messageObj, channelName)
+	local success, err = pcall(function()
+		self:LazyFire("eReceivedUnfilteredMessage", messageObj, channelName)
 
-        if self.PlayerObj then
-            self.EventFolder.OnNewMessage:FireClient(self.PlayerObj, messageObj, channelName)
-        end
-    end)
+		if self.PlayerObj then
+			self.EventFolder.OnNewMessage:FireClient(self.PlayerObj, messageObj, channelName)
+		end
+	end)
 
-    if not success and err then
-        print('Error sending internal message: ' .. err)
-    end
+	if not success and err then
+		print("Error sending internal message: " .. err)
+	end
 end
 function methods:InternalSendFilteredMessage(messageObj, channelName)
-    local success, err = pcall(function()
-        self:LazyFire('eReceivedMessage', messageObj, channelName)
-        self:LazyFire('eMessageDoneFiltering', messageObj, channelName)
+	local success, err = pcall(function()
+		self:LazyFire("eReceivedMessage", messageObj, channelName)
+		self:LazyFire("eMessageDoneFiltering", messageObj, channelName)
 
-        if self.PlayerObj then
-            self.EventFolder.OnMessageDoneFiltering:FireClient(self.PlayerObj, messageObj, channelName)
-        end
-    end)
+		if self.PlayerObj then
+			self.EventFolder.OnMessageDoneFiltering:FireClient(self.PlayerObj, messageObj, channelName)
+		end
+	end)
 
-    if not success and err then
-        print('Error sending internal filtered message: ' .. err)
-    end
+	if not success and err then
+		print("Error sending internal filtered message: " .. err)
+	end
 end
-function methods:InternalSendFilteredMessageWithFilterResult(
-    inMessageObj,
-    channelName
-)
-    local messageObj = ShallowCopy(inMessageObj)
-    local oldFilterResult = messageObj.FilterResult
-    local player = self:GetPlayer()
-    local msg = ''
+function methods:InternalSendFilteredMessageWithFilterResult(inMessageObj, channelName)
+	local messageObj = ShallowCopy(inMessageObj)
+	local oldFilterResult = messageObj.FilterResult
+	local player = self:GetPlayer()
+	local msg = ""
 
-    pcall(function()
-        if (messageObj.IsFilterResult) then
-            if (player) then
-                msg = oldFilterResult:GetChatForUserAsync(player.UserId)
-            else
-                msg = oldFilterResult:GetNonChatStringForBroadcastAsync()
-            end
-        else
-            msg = oldFilterResult
-        end
-    end)
+	pcall(function()
+		if messageObj.IsFilterResult then
+			if player then
+				msg = oldFilterResult:GetChatForUserAsync(player.UserId)
+			else
+				msg = oldFilterResult:GetNonChatStringForBroadcastAsync()
+			end
+		else
+			msg = oldFilterResult
+		end
+	end)
 
-    if UserFlagRemoveMessageOnTextFilterFailures then
-        messageObj.Message = msg
-        messageObj.FilterResult = nil
+	if UserFlagRemoveMessageOnTextFilterFailures then
+		messageObj.Message = msg
+		messageObj.FilterResult = nil
 
-        self:InternalSendFilteredMessage(messageObj, channelName)
-    else
-        if (#msg > 0) then
-            messageObj.Message = msg
-            messageObj.FilterResult = nil
+		self:InternalSendFilteredMessage(messageObj, channelName)
+	else
+		if #msg > 0 then
+			messageObj.Message = msg
+			messageObj.FilterResult = nil
 
-            self:InternalSendFilteredMessage(messageObj, channelName)
-        end
-    end
+			self:InternalSendFilteredMessage(messageObj, channelName)
+		end
+	end
 end
 function methods:InternalSendSystemMessage(messageObj, channelName)
-    local success, err = pcall(function()
-        self:LazyFire('eReceivedSystemMessage', messageObj, channelName)
+	local success, err = pcall(function()
+		self:LazyFire("eReceivedSystemMessage", messageObj, channelName)
 
-        if self.PlayerObj then
-            self.EventFolder.OnNewSystemMessage:FireClient(self.PlayerObj, messageObj, channelName)
-        end
-    end)
+		if self.PlayerObj then
+			self.EventFolder.OnNewSystemMessage:FireClient(self.PlayerObj, messageObj, channelName)
+		end
+	end)
 
-    if not success and err then
-        print('Error sending internal system message: ' .. err)
-    end
+	if not success and err then
+		print("Error sending internal system message: " .. err)
+	end
 end
 function methods:UpdateChannelNameColor(channelName, channelNameColor)
-    self:LazyFire('eChannelNameColorUpdated', channelName, channelNameColor)
+	self:LazyFire("eChannelNameColorUpdated", channelName, channelNameColor)
 
-    if self.PlayerObj then
-        self.EventFolder.ChannelNameColorUpdated:FireClient(self.PlayerObj, channelName, channelNameColor)
-    end
+	if self.PlayerObj then
+		self.EventFolder.ChannelNameColorUpdated:FireClient(self.PlayerObj, channelName, channelNameColor)
+	end
 end
 function module.new(vChatService, name)
-    local obj = setmetatable({}, methods)
+	local obj = setmetatable({}, methods)
 
-    obj.ChatService = vChatService
-    obj.PlayerObj = nil
-    obj.Name = name
-    obj.ExtraData = {}
-    obj.Channels = {}
-    obj.MutedSpeakers = {}
-    obj.EventFolder = nil
+	obj.ChatService = vChatService
+	obj.PlayerObj = nil
+	obj.Name = name
+	obj.ExtraData = {}
+	obj.Channels = {}
+	obj.MutedSpeakers = {}
+	obj.EventFolder = nil
 
-    return obj
+	return obj
 end
 
 return module

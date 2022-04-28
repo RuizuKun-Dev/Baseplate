@@ -4,30 +4,29 @@ local BaseCharacterController = {}
 BaseCharacterController.__index = BaseCharacterController
 
 function BaseCharacterController.new()
-    local self = setmetatable({}, BaseCharacterController)
+	local self = setmetatable({}, BaseCharacterController)
 
-    self.enabled = false
-    self.moveVector = ZERO_VECTOR3
-    self.moveVectorIsCameraRelative = true
-    self.isJumping = false
+	self.enabled = false
+	self.moveVector = ZERO_VECTOR3
+	self.moveVectorIsCameraRelative = true
+	self.isJumping = false
 
-    return self
+	return self
 end
 function BaseCharacterController:OnRenderStepped(dt) end
 function BaseCharacterController:GetMoveVector()
-    return self.moveVector
+	return self.moveVector
 end
 function BaseCharacterController:IsMoveVectorCameraRelative()
-    return self.moveVectorIsCameraRelative
+	return self.moveVectorIsCameraRelative
 end
 function BaseCharacterController:GetIsJumping()
-    return self.isJumping
+	return self.isJumping
 end
 function BaseCharacterController:Enable(enable)
-    error(
-[[BaseCharacterController:Enable must be overridden in derived classes and should not be called.]])
+	error([[BaseCharacterController:Enable must be overridden in derived classes and should not be called.]])
 
-    return false
+	return false
 end
 
 return BaseCharacterController

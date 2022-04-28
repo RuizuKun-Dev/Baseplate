@@ -1,1 +1,1 @@
-require(script.Parent:WaitForChild('PlayerModule'))
+require(script.Parent:WaitForChild("PlayerModule"))

@@ -1,6 +1,6 @@
-local PlayersService = game:GetService('Players')
+local PlayersService = game:GetService("Players")
 local clientChatModules = script.Parent
-local ChatConstants = require(clientChatModules:WaitForChild('ChatConstants'))
+local ChatConstants = require(clientChatModules:WaitForChild("ChatConstants"))
 local module = {}
 
 module.WindowDraggable = false
@@ -47,7 +47,7 @@ module.ChatWindowTextFadeOutTime = 30
 module.ChatDefaultFadeDuration = 0.8
 module.ChatShouldFadeInFromNewInformation = false
 module.ChatAnimationFPS = 20
-module.GeneralChannelName = 'All'
+module.GeneralChannelName = "All"
 module.EchoMessagesInGeneralChannel = true
 module.ChannelsBarFullTabSize = 4
 module.MaxChannelNameLength = 12
@@ -57,34 +57,34 @@ module.MessageHistoryLengthPerChannel = 50
 module.ShowJoinAndLeaveHelpText = false
 module.MaximumMessageLength = 200
 module.DisallowedWhiteSpace = {
-    '\n',
-    '\r',
-    '\t',
-    '\v',
-    '\f',
+	"\n",
+	"\r",
+	"\t",
+	"\v",
+	"\f",
 }
 module.ClickOnPlayerNameToWhisper = true
 module.ClickOnChannelNameToSetMainChannel = true
 module.BubbleChatMessageTypes = {
-    ChatConstants.MessageTypeDefault,
-    ChatConstants.MessageTypeWhisper,
+	ChatConstants.MessageTypeDefault,
+	ChatConstants.MessageTypeWhisper,
 }
 module.WhisperCommandAutoCompletePlayerNames = true
 module.PlayerDisplayNamesEnabled = true
 module.WhisperByDisplayName = true
 
-local ChangedEvent = Instance.new('BindableEvent')
+local ChangedEvent = Instance.new("BindableEvent")
 local proxyTable = setmetatable({}, {
-    __index = function(tbl, index)
-        return module[index]
-    end,
-    __newindex = function(tbl, index, value)
-        module[index] = value
+	__index = function(tbl, index)
+		return module[index]
+	end,
+	__newindex = function(tbl, index, value)
+		module[index] = value
 
-        ChangedEvent:Fire(index, value)
-    end,
+		ChangedEvent:Fire(index, value)
+	end,
 })
 
-rawset(proxyTable, 'SettingsChanged', ChangedEvent.Event)
+rawset(proxyTable, "SettingsChanged", ChangedEvent.Event)
 
 return proxyTable

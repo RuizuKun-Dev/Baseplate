@@ -3,7 +3,8 @@
 	2018 Camera Update - AllYourBlox
 --]]
 
---[[ Constants ]]--
+--[[ Constants ]]
+--
 local DEFAULT_MOUSE_LOCK_CURSOR = "rbxasset://textures/MouseLockedCursor.png"
 
 local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
@@ -17,10 +18,11 @@ do
 	FFlagUserCameraToggleDontSetMouseIconEveryFrame = success and value
 end
 
---[[ Services ]]--
+--[[ Services ]]
+--
 local PlayersService = game:GetService("Players")
 local ContextActionService = game:GetService("ContextActionService")
-local Settings = UserSettings()	-- ignore warning
+local Settings = UserSettings() -- ignore warning
 local GameSettings = Settings.GameSettings
 local Mouse = if FFlagUserCameraToggleDontSetMouseIconEveryFrame then nil else PlayersService.LocalPlayer:GetMouse()
 
@@ -29,7 +31,8 @@ local CameraUtils = if FFlagUserCameraToggleDontSetMouseIconEveryFrame
 	then require(script.Parent:WaitForChild("CameraUtils"))
 	else nil
 
---[[ The Module ]]--
+--[[ The Module ]]
+--
 local MouseLockController = {}
 MouseLockController.__index = MouseLockController
 
@@ -38,12 +41,12 @@ function MouseLockController.new()
 
 	self.isMouseLocked = false
 	self.savedMouseCursor = nil
-	self.boundKeys = {Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift} -- defaults
+	self.boundKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift } -- defaults
 
 	self.mouseLockToggledEvent = Instance.new("BindableEvent")
 
 	local boundKeysObj: StringValue = script:FindFirstChild("BoundKeys") :: StringValue
-	if (not boundKeysObj) or (not boundKeysObj:IsA("StringValue")) then
+	if not boundKeysObj or (not boundKeysObj:IsA("StringValue")) then
 		-- If object with correct name was found, but it's not a StringValue, destroy and replace
 		if boundKeysObj then
 			boundKeysObj:Destroy()
@@ -103,7 +106,7 @@ function MouseLockController:GetMouseLockOffset()
 		end
 		offsetValueObj = Instance.new("Vector3Value")
 		offsetValueObj.Name = "CameraOffset"
-		offsetValueObj.Value = Vector3.new(1.75,0,0) -- Legacy Default Value
+		offsetValueObj.Value = Vector3.new(1.75, 0, 0) -- Legacy Default Value
 		offsetValueObj.Parent = script
 	end
 
@@ -111,27 +114,31 @@ function MouseLockController:GetMouseLockOffset()
 		return offsetValueObj.Value
 	end
 
-	return Vector3.new(1.75,0,0)
+	return Vector3.new(1.75, 0, 0)
 end
 
 function MouseLockController:UpdateMouseLockAvailability()
 	local devAllowsMouseLock = PlayersService.LocalPlayer.DevEnableMouseLock
-	local devMovementModeIsScriptable = PlayersService.LocalPlayer.DevComputerMovementMode == Enum.DevComputerMovementMode.Scriptable
+	local devMovementModeIsScriptable = PlayersService.LocalPlayer.DevComputerMovementMode
+		== Enum.DevComputerMovementMode.Scriptable
 	local userHasMouseLockModeEnabled = GameSettings.ControlMode == Enum.ControlMode.MouseLockSwitch
-	local userHasClickToMoveEnabled =  GameSettings.ComputerMovementMode == Enum.ComputerMovementMode.ClickToMove
-	local MouseLockAvailable = devAllowsMouseLock and userHasMouseLockModeEnabled and not userHasClickToMoveEnabled and not devMovementModeIsScriptable
+	local userHasClickToMoveEnabled = GameSettings.ComputerMovementMode == Enum.ComputerMovementMode.ClickToMove
+	local MouseLockAvailable = devAllowsMouseLock
+		and userHasMouseLockModeEnabled
+		and not userHasClickToMoveEnabled
+		and not devMovementModeIsScriptable
 
-	if MouseLockAvailable~=self.enabled then
+	if MouseLockAvailable ~= self.enabled then
 		self:EnableMouseLock(MouseLockAvailable)
 	end
 end
 
 function MouseLockController:OnBoundKeysObjectChanged(newValue: string)
 	self.boundKeys = {} -- Overriding defaults, note: possibly with nothing at all if boundKeysObj.Value is "" or contains invalid values
-	for token in string.gmatch(newValue,"[^%s,]+") do
+	for token in string.gmatch(newValue, "[^%s,]+") do
 		for _, keyEnum in pairs(Enum.KeyCode:GetEnumItems()) do
 			if token == keyEnum.Name then
-				self.boundKeys[#self.boundKeys+1] = keyEnum :: Enum.KeyCode
+				self.boundKeys[#self.boundKeys + 1] = keyEnum :: Enum.KeyCode
 				break
 			end
 		end
@@ -140,7 +147,8 @@ function MouseLockController:OnBoundKeysObjectChanged(newValue: string)
 	self:BindContextActions()
 end
 
---[[ Local Functions ]]--
+--[[ Local Functions ]]
+--
 function MouseLockController:OnMouseLockToggled()
 	self.isMouseLocked = not self.isMouseLocked
 
@@ -206,7 +214,6 @@ end
 
 function MouseLockController:EnableMouseLock(enable: boolean)
 	if enable ~= self.enabled then
-
 		self.enabled = enable
 
 		if self.enabled then
@@ -232,7 +239,6 @@ function MouseLockController:EnableMouseLock(enable: boolean)
 
 			self.isMouseLocked = false
 		end
-
 	end
 end
 
