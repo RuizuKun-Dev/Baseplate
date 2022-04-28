@@ -8,6 +8,13 @@ do
 	userShouldMuteUnfilteredMessage = success and enabled
 end
 
+local UserFlagRemoveMessageOnTextFilterFailures do
+	local success, value = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserRemoveMessageOnTextFilterFailures")
+	end)
+	UserFlagRemoveMessageOnTextFilterFailures = success and value
+end
+
 local module = {}
 
 local modulesFolder = script.Parent
@@ -22,7 +29,7 @@ local ChatConstants = require(replicatedModules:WaitForChild("ChatConstants"))
 local Util = require(modulesFolder:WaitForChild("Util"))
 
 local ChatLocalization = nil
-pcall(function() ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization) end)
+pcall(function() ChatLocalization = require(game:GetService("Chat").ClientChatModules.ChatLocalization :: any) end)
 ChatLocalization = ChatLocalization or {}
 
 if not ChatLocalization.FormatMessageToSend or not ChatLocalization.LocalizeFormattedMessage then
@@ -395,7 +402,8 @@ function methods:InternalPostMessage(fromSpeaker, message, extraData)
 				-- Send unfiltered message to speaker who sent the message.
 				local cMessageObj = ShallowCopy(messageObj)
 				if userShouldMuteUnfilteredMessage then
-					cMessageObj.Message = string.rep("_", messageObj.MessageLength)
+					local messageLength = messageObj.MessageLengthUtf8 or messageObj.MessageLength
+					cMessageObj.Message = string.rep("_", messageLength)
 				else
 					cMessageObj.Message = message
 				end
@@ -423,7 +431,13 @@ function methods:InternalPostMessage(fromSpeaker, message, extraData)
 		messageObj.FilterResult = filteredMessage
 		messageObj.IsFilterResult = isFilterResult
 	else
-		return false
+		if UserFlagRemoveMessageOnTextFilterFailures then
+			messageObj.IsFilterResult = false
+			messageObj.FilterResult = ""
+			messageObj.MessageLength = 0
+		else
+			return false
+		end
 	end
 	messageObj.IsFiltered = true
 	self:InternalAddMessageToHistoryLog(messageObj)
@@ -541,6 +555,7 @@ function methods:InternalCreateMessageObject(message, fromSpeaker, isFiltered, e
 		SpeakerUserId = speakerUserId,
 		OriginalChannel = self.Name,
 		MessageLength = string.len(message),
+		MessageLengthUtf8 = utf8.len(utf8.nfcnormalize(message)),
 		MessageType = messageType,
 		IsFiltered = isFiltered,
 		Message = isFiltered and message or nil,

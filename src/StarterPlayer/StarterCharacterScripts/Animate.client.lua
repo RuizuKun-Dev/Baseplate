@@ -5,10 +5,19 @@ local pose = "Standing"
 local userNoUpdateOnLoopSuccess, userNoUpdateOnLoopValue = pcall(function() return UserSettings():IsUserFeatureEnabled("UserNoUpdateOnLoop") end)
 local userNoUpdateOnLoop = userNoUpdateOnLoopSuccess and userNoUpdateOnLoopValue
 
-local animateScriptEmoteHookFlagExists, animateScriptEmoteHookFlagEnabled = pcall(function()
-	return UserSettings():IsUserFeatureEnabled("UserAnimateScriptEmoteHook")
-end)
-local FFlagAnimateScriptEmoteHook = animateScriptEmoteHookFlagExists and animateScriptEmoteHookFlagEnabled
+local userEmoteToRunThresholdChange do
+	local success, value = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserEmoteToRunThresholdChange")
+	end)
+	userEmoteToRunThresholdChange = success and value
+end
+
+local userPlayEmoteByIdAnimTrackReturn do
+	local success, value = pcall(function()
+		return UserSettings():IsUserFeatureEnabled("UserPlayEmoteByIdAnimTrackReturn2")
+	end)
+	userPlayEmoteByIdAnimTrackReturn = success and value
+end
 
 local AnimationSpeedDampeningObject = script:FindFirstChild("ScaleDampeningPercent")
 local HumanoidHipHeight = 2
@@ -260,6 +269,16 @@ end
 script.ChildAdded:connect(scriptChildModified)
 script.ChildRemoved:connect(scriptChildModified)
 
+-- Clear any existing animation tracks
+-- Fixes issue with characters that are moved in and out of the Workspace accumulating tracks
+local animator = if Humanoid then Humanoid:FindFirstChildOfClass("Animator") else nil
+if animator then
+	local animTracks = animator:GetPlayingAnimationTracks()
+	for i,track in ipairs(animTracks) do
+		track:Stop(0)
+		track:Destroy()
+	end
+end
 
 for name, fileList in pairs(animNames) do 
 	configureAnimationSet(name, fileList)
@@ -289,7 +308,7 @@ function stopAllAnimations()
 		oldAnim = "idle"
 	end
 	
-	if FFlagAnimateScriptEmoteHook and currentlyPlayingEmote then
+	if currentlyPlayingEmote then
 		oldAnim = "idle"
 		currentlyPlayingEmote = false
 	end
@@ -338,28 +357,39 @@ function getHeightScale()
 	return 1
 end
 
-local smallButNotZero = 0.0001
-function setRunSpeed(speed)
+local function rootMotionCompensation(speed)
 	local speedScaled = speed * 1.25
 	local heightScale = getHeightScale()
 	local runSpeed = speedScaled / heightScale
+	return runSpeed
+end
 
-	if runSpeed ~= currentAnimSpeed then
-		if runSpeed < 0.33 then
-			currentAnimTrack:AdjustWeight(1.0)		
-			runAnimTrack:AdjustWeight(smallButNotZero)
-		elseif runSpeed < 0.66 then
-			local weight = ((runSpeed - 0.33) / 0.33)
-			currentAnimTrack:AdjustWeight(1.0 - weight + smallButNotZero)
-			runAnimTrack:AdjustWeight(weight + smallButNotZero)
-		else
-			currentAnimTrack:AdjustWeight(smallButNotZero)
-			runAnimTrack:AdjustWeight(1.0)
-		end
-		currentAnimSpeed = runSpeed
-		runAnimTrack:AdjustSpeed(runSpeed)
-		currentAnimTrack:AdjustSpeed(runSpeed)
-	end	
+local smallButNotZero = 0.0001
+local function setRunSpeed(speed)
+	local normalizedWalkSpeed = 0.5 -- established empirically using current `913402848` walk animation
+	local normalizedRunSpeed  = 1
+	local runSpeed = rootMotionCompensation(speed)
+
+	local walkAnimationWeight = smallButNotZero
+	local runAnimationWeight = smallButNotZero
+	local walkAnimationTimewarp = runSpeed/normalizedWalkSpeed
+	local runAnimationTimerwarp = runSpeed/normalizedRunSpeed
+
+	if runSpeed <= normalizedWalkSpeed then
+		walkAnimationWeight = 1
+	elseif runSpeed < normalizedRunSpeed then
+		local fadeInRun = (runSpeed - normalizedWalkSpeed)/(normalizedRunSpeed - normalizedWalkSpeed)
+		walkAnimationWeight = 1 - fadeInRun
+		runAnimationWeight  = fadeInRun
+		walkAnimationTimewarp = 1
+		runAnimationTimerwarp = 1
+	else
+		runAnimationWeight = 1
+	end
+	currentAnimTrack:AdjustWeight(walkAnimationWeight)
+	runAnimTrack:AdjustWeight(runAnimationWeight)
+	currentAnimTrack:AdjustSpeed(walkAnimationTimewarp)
+	runAnimTrack:AdjustSpeed(runAnimationTimerwarp)
 end
 
 function setAnimationSpeed(speed)
@@ -394,7 +424,7 @@ function keyFrameReachedFunc(frameName)
 				repeatAnim = "idle"
 			end
 			
-			if FFlagAnimateScriptEmoteHook and currentlyPlayingEmote then
+			if currentlyPlayingEmote then
 				if currentAnimTrack.Looped then
 					-- Allow the emote to loop
 					return
@@ -550,8 +580,11 @@ end
 -------------------------------------------------------------------------------------------
 -- STATE CHANGE HANDLERS
 
-function onRunning(speed)	
-	if speed > 0.75 then
+function onRunning(speed)
+	local movedDuringEmote =
+		userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
+	local speedThreshold = movedDuringEmote and Humanoid.WalkSpeed or 0.75
+	if speed > speedThreshold then
 		local scale = 16.0
 		playAnimation("walk", 0.2, Humanoid)
 		setAnimationSpeed(speed / scale)
@@ -727,32 +760,41 @@ game:GetService("Players").LocalPlayer.Chatted:connect(function(msg)
 end)
 
 -- emote bindable hook
-if FFlagAnimateScriptEmoteHook then
-	script:WaitForChild("PlayEmote").OnInvoke = function(emote)
-		-- Only play emotes when idling
-		if pose ~= "Standing" then
-			return
-		end
-	
-		if emoteNames[emote] ~= nil then
-			-- Default emotes
-			playAnimation(emote, EMOTE_TRANSITION_TIME, Humanoid)
-			
-			return true
-		elseif typeof(emote) == "Instance" and emote:IsA("Animation") then
-			-- Non-default emotes
-			playEmote(emote, EMOTE_TRANSITION_TIME, Humanoid)
-			return true
-		end
-		
-		-- Return false to indicate that the emote could not be played
-		return false
+script:WaitForChild("PlayEmote").OnInvoke = function(emote)
+	-- Only play emotes when idling
+	if pose ~= "Standing" then
+		return
 	end
+
+	if emoteNames[emote] ~= nil then
+		-- Default emotes
+		playAnimation(emote, EMOTE_TRANSITION_TIME, Humanoid)
+		
+		if userPlayEmoteByIdAnimTrackReturn then
+			return true, currentAnimTrack
+		else
+			return true
+		end
+	elseif typeof(emote) == "Instance" and emote:IsA("Animation") then
+		-- Non-default emotes
+		playEmote(emote, EMOTE_TRANSITION_TIME, Humanoid)
+
+		if userPlayEmoteByIdAnimTrackReturn then
+			return true, currentAnimTrack
+		else
+			return true
+		end
+	end
+	
+	-- Return false to indicate that the emote could not be played
+	return false
 end
 
--- initialize to idle
-playAnimation("idle", 0.1, Humanoid)
-pose = "Standing"
+if Character.Parent ~= nil then
+	-- initialize to idle
+	playAnimation("idle", 0.1, Humanoid)
+	pose = "Standing"
+end
 
 -- loop to handle timed state transitions and tool animations
 while Character.Parent ~= nil do

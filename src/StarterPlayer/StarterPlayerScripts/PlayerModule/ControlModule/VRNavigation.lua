@@ -1,3 +1,5 @@
+--!nolint GlobalUsedAsLocal
+
 --[[
 		VRNavigation
 --]]
