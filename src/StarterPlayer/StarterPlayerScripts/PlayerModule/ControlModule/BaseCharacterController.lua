@@ -1,47 +1,33 @@
---!strict
---[[
-	BaseCharacterController - Abstract base class for character controllers, not intended to be
-	directly instantiated.
-
-	2018 PlayerScripts Update - AllYourBlox
---]]
-
-local ZERO_VECTOR3: Vector3 = Vector3.new(0,0,0)
-
---[[ The Module ]]--
+local ZERO_VECTOR3 = Vector3.new(0, 0, 0)
 local BaseCharacterController = {}
+
 BaseCharacterController.__index = BaseCharacterController
 
 function BaseCharacterController.new()
-	local self = setmetatable({}, BaseCharacterController)
-	self.enabled = false
-	self.moveVector = ZERO_VECTOR3
-	self.moveVectorIsCameraRelative = true
-	self.isJumping = false
-	return self
-end
+    local self = setmetatable({}, BaseCharacterController)
 
-function BaseCharacterController:OnRenderStepped(dt: number)
-	-- By default, nothing to do
-end
+    self.enabled = false
+    self.moveVector = ZERO_VECTOR3
+    self.moveVectorIsCameraRelative = true
+    self.isJumping = false
 
-function BaseCharacterController:GetMoveVector(): Vector3
-	return self.moveVector
+    return self
 end
-
-function BaseCharacterController:IsMoveVectorCameraRelative(): boolean
-	return self.moveVectorIsCameraRelative
+function BaseCharacterController:OnRenderStepped(dt) end
+function BaseCharacterController:GetMoveVector()
+    return self.moveVector
 end
-
-function BaseCharacterController:GetIsJumping(): boolean
-	return self.isJumping
+function BaseCharacterController:IsMoveVectorCameraRelative()
+    return self.moveVectorIsCameraRelative
 end
+function BaseCharacterController:GetIsJumping()
+    return self.isJumping
+end
+function BaseCharacterController:Enable(enable)
+    error(
+[[BaseCharacterController:Enable must be overridden in derived classes and should not be called.]])
 
--- Override in derived classes to set self.enabled and return boolean indicating
--- whether Enable/Disable was successful. Return true if controller is already in the requested state.
-function BaseCharacterController:Enable(enable: boolean): boolean
-	error("BaseCharacterController:Enable must be overridden in derived classes and should not be called.")
-	return false
+    return false
 end
 
 return BaseCharacterController
